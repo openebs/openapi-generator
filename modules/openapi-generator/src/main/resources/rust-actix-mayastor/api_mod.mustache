@@ -1,0 +1,82 @@
+pub use actix_web::http::StatusCode;
+use actix_web::{
+    web::{HttpResponse, ServiceConfig},
+    FromRequest, ResponseError,
+};
+use serde::Serialize;
+use std::fmt::{self, Debug, Display, Formatter};
+
+{{#apiInfo}}
+{{#apis}}
+pub mod {{{classFilename}}}_handlers;
+{{/apis}}
+{{/apiInfo}}
+
+/// Rest Error wrapper with a status code and a JSON error
+/// Note: Only a single error type for each handler is supported at the moment
+pub struct RestError<T: Debug + Serialize> {
+    status_code: StatusCode,
+    error_response: T,
+}
+
+impl<T: Debug + Serialize> RestError<T> {
+    pub fn new(status_code: StatusCode, error_response: T) -> Self {
+        Self {
+            status_code,
+            error_response
+        }
+    }
+}
+
+impl<T: Debug + Serialize> Debug for RestError<T> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        f.debug_struct("RestError")
+            .field("status_code", &self.status_code)
+            .field("error_response", &self.error_response)
+            .finish()
+    }
+}
+
+impl<T: Debug + Serialize> Display for RestError<T> {
+    fn fmt(&self, _: &mut Formatter<'_>) -> fmt::Result {
+        unimplemented!()
+    }
+}
+
+impl<T: Debug + Serialize> ResponseError for RestError<T> {
+    fn status_code(&self) -> StatusCode {
+        self.status_code
+    }
+
+    fn error_response(&self) -> HttpResponse {
+        HttpResponse::build(self.status_code).json2(&self.error_response)
+    }
+}
+
+/// Configure all actix server handlers
+pub fn configure<T: {{#apiInfo}}{{#apis}}{{#operations}}{{^-last}}{{{classname}}} + {{/-last}}{{#-last}}{{{classname}}} + 'static{{#hasAuthMethods}}, A: FromRequest + 'static{{/hasAuthMethods}}{{/-last}}{{/operations}}{{/apis}}{{/apiInfo}}>(cfg: &mut ServiceConfig) {
+{{#apiInfo}}
+{{#apis}}
+{{#operations}}
+{{#operation}}
+{{#-last}}
+    {{{classFilename}}}_handlers::configure::<T{{#hasAuthMethods}}, A{{/hasAuthMethods}}>(cfg);
+{{/-last}}
+{{/operation}}
+{{/operations}}
+{{/apis}}
+{{/apiInfo}}
+}
+
+{{#apiInfo}}
+{{#apis}}
+mod {{{classFilename}}};
+{{#operations}}
+{{#operation}}
+{{#-last}}
+pub use self::{{{classFilename}}}::{{{classname}}};
+{{/-last}}
+{{/operation}}
+{{/operations}}
+{{/apis}}
+{{/apiInfo}}

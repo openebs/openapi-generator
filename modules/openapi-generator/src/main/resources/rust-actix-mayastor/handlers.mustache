@@ -1,0 +1,42 @@
+#![allow(missing_docs, trivial_casts, unused_variables, unused_mut, unused_imports, unused_extern_crates, non_camel_case_types)]
+
+use actix_web::{
+    web::{self, Json, Path, Query, ServiceConfig},
+    FromRequest,
+};
+
+/// Configure handlers for the {{{classname}}} resource
+pub fn configure<T: crate::apis::{{{classname}}} + 'static{{#operations}}{{#operation}}{{#-last}}{{#authMethods}}, A: FromRequest + 'static{{/authMethods}}{{/-last}}{{/operation}}{{/operations}}>(cfg: &mut ServiceConfig) {
+    cfg
+{{#operations}}
+{{#operation}}
+{{#description}}
+/// {{{.}}}
+{{/description}}
+{{#notes}}
+/// {{{.}}}
+{{/notes}}
+       .service(
+            actix_web::web::resource("{{{path}}}")
+                .name("{{{operationId}}}")
+                .guard(actix_web::guard::{{{httpMethod}}}())
+                .route(actix_web::web::{{#vendorExtensions}}{{x-httpMethodLower}}{{/vendorExtensions}}().to({{{operationId}}}::<T{{#hasAuthMethods}}, A{{/hasAuthMethods}}>))
+       ){{#-last}};{{/-last}}
+{{/operation}}
+{{/operations}}
+}
+
+{{#operations}}
+{{#operation}}
+{{#description}}
+/// {{{.}}}
+{{/description}}
+{{#notes}}
+/// {{{.}}}
+{{/notes}}
+async fn {{{operationId}}}<T: crate::apis::{{{classname}}} + 'static{{#hasAuthMethods}}, A: FromRequest + 'static{{/hasAuthMethods}}>({{#hasAuthMethods}}_token: A{{#hasParams}}, {{/hasParams}}{{/hasAuthMethods}}{{#hasPathParams}}Path({{#pathParams.1}}({{/pathParams.1}}{{#pathParams}}{{{paramName}}}{{^-last}}, {{/-last}}{{/pathParams}}{{#pathParams.1}}){{/pathParams.1}}): Path<{{#pathParams.1}}({{/pathParams.1}}{{#pathParams}}{{^required}}Option<{{/required}}{{#required}}{{#isNullable}}Option<{{/isNullable}}{{/required}}{{#isString}}{{#isArray}}Vec<{{/isArray}}String{{#isArray}}>{{/isArray}}{{/isString}}{{#isUuid}}{{#isArray}}Vec<{{/isArray}}String{{#isArray}}>{{/isArray}}{{/isUuid}}{{^isString}}{{^isUuid}}{{^isPrimitiveType}}{{^isContainer}}{{#isBodyParam}}crate::models::{{/isBodyParam}}{{/isContainer}}{{/isPrimitiveType}}{{{dataType}}}{{/isUuid}}{{/isString}}{{^required}}>{{/required}}{{#required}}{{#isNullable}}>{{/isNullable}}{{/required}}{{^-last}}, {{/-last}}{{/pathParams}}{{#pathParams.1}}){{/pathParams.1}}>{{/hasPathParams}}{{#hasQueryParams}}{{#pathParams}}, {{/pathParams}}Query({{#queryParams.1}}({{/queryParams.1}}{{#queryParams}}{{{paramName}}}{{^-last}}, {{/-last}}{{/queryParams}}{{#queryParams.1}}){{/queryParams.1}}): Query<{{#queryParams.1}}({{/queryParams.1}}{{#queryParams}}{{#isString}}String{{/isString}}{{#isUuid}}String{{/isUuid}}{{^isString}}{{^isUuid}}{{^isPrimitiveType}}{{^isContainer}}{{#isBodyParam}}crate::models::{{/isBodyParam}}{{/isContainer}}{{/isPrimitiveType}}{{{dataType}}}{{/isUuid}}{{/isString}}{{^-last}}, {{/-last}}{{/queryParams}}{{#queryParams.1}}){{/queryParams.1}}>{{/hasQueryParams}}{{#hasBodyParam}}{{#hasQueryParams}}, {{/hasQueryParams}}{{^hasQueryParams}}{{#hasPathParams}}, {{/hasPathParams}}{{/hasQueryParams}}{{#bodyParam}}Json({{{paramName}}}): Json<{{^required}}Option<{{/required}}{{#required}}{{#isNullable}}Option<{{/isNullable}}{{/required}}{{#isString}}{{#isArray}}Vec<{{/isArray}}String{{#isArray}}>{{/isArray}}{{/isString}}{{#isUuid}}{{#isArray}}Vec<{{/isArray}}String{{#isArray}}>{{/isArray}}{{/isUuid}}{{^isString}}{{^isUuid}}{{^isPrimitiveType}}{{^isContainer}}{{#isBodyParam}}crate::models::{{/isBodyParam}}{{/isContainer}}{{/isPrimitiveType}}{{{dataType}}}{{/isUuid}}{{/isString}}{{^required}}>{{/required}}{{#required}}{{#isNullable}}>{{/isNullable}}{{/required}}>{{/bodyParam}}{{/hasBodyParam}}) -> Result<Json<{{#supportMultipleResponses}}ResponseContent<{{{operationIdCamelCase}}}Success>{{/supportMultipleResponses}}{{^supportMultipleResponses}}{{^returnType}}(){{/returnType}}{{#returnType}}{{{returnType}}}{{/returnType}}{{/supportMultipleResponses}}>, crate::apis::RestError<crate::models::RestJsonError>> {
+    {{#returnType}}T::{{{operationId}}}({{#hasPathParams}}Path({{#pathParams.1}}({{/pathParams.1}}{{#pathParams}}{{{paramName}}}{{^-last}}, {{/-last}}{{/pathParams}}{{#pathParams.1}}){{/pathParams.1}}){{/hasPathParams}}{{#hasQueryParams}}{{#pathParams}}, {{/pathParams}}Query({{#queryParams.1}}({{/queryParams.1}}{{#queryParams}}{{{paramName}}}{{^-last}}, {{/-last}}{{/queryParams}}{{#queryParams.1}}){{/queryParams.1}}){{/hasQueryParams}}{{#hasBodyParam}}{{#hasQueryParams}}, {{/hasQueryParams}}{{^hasQueryParams}}{{#hasPathParams}}, {{/hasPathParams}}{{/hasQueryParams}}{{#bodyParam}}Json({{{paramName}}}){{/bodyParam}}{{/hasBodyParam}}).await{{/returnType}}{{^returnType}}T::{{{operationId}}}({{#hasPathParams}}Path({{#pathParams.1}}({{/pathParams.1}}{{#pathParams}}{{{paramName}}}{{^-last}}, {{/-last}}{{/pathParams}}{{#pathParams.1}}){{/pathParams.1}}){{/hasPathParams}}{{#hasQueryParams}}{{#pathParams}}, {{/pathParams}}Query({{#queryParams.1}}({{/queryParams.1}}{{#queryParams}}{{{paramName}}}{{^-last}}, {{/-last}}{{/queryParams}}{{#queryParams.1}}){{/queryParams.1}}){{/hasQueryParams}}{{#hasBodyParam}}{{#hasQueryParams}}, {{/hasQueryParams}}{{^hasQueryParams}}{{#hasPathParams}}, {{/hasPathParams}}{{/hasQueryParams}}{{#bodyParam}}Json({{{paramName}}}){{/bodyParam}}{{/hasBodyParam}}).await.map(|_| Json(())){{/returnType}}
+}
+
+{{/operation}}
+{{/operations}}
