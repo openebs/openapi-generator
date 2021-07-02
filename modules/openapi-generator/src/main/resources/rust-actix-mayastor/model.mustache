@@ -1,3 +1,4 @@
+#![allow(clippy::too_many_arguments, clippy::new_without_default)]
 {{>partial_header}}
 {{#models}}
 {{#model}}
@@ -28,8 +29,8 @@ impl ToString for {{{classname}}} {
         }
     }
 }
-{{/isEnum}}
 
+{{/isEnum}}
 {{!-- for schemas that have a discriminator --}}
 {{#discriminator}}
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -44,7 +45,7 @@ pub enum {{{classname}}} {
         /// {{{description}}}
         {{/description}}
         #[serde(rename = "{{{baseName}}}"{{^required}}, skip_serializing_if = "Option::is_none"{{/required}})]
-        {{{name}}}: {{#required}}{{#isNullable}}Option<{{/isNullable}}{{/required}}{{^required}}Option<{{/required}}{{#isEnum}}{{{enumName}}}{{/isEnum}}{{^isEnum}}{{#isModel}}Box<{{{dataType}}}>{{/isModel}}{{^isModel}}{{{dataType}}}{{/isModel}}{{/isEnum}}{{#required}}{{#isNullable}}>{{/isNullable}}{{/required}}{{^required}}>{{/required}},
+        {{{name}}}: {{#required}}{{#isNullable}}Option<{{/isNullable}}{{/required}}{{^required}}Option<{{/required}}{{#isEnum}}{{{enumName}}}{{/isEnum}}{{^isEnum}}{{{dataType}}}{{/isEnum}}{{#required}}{{#isNullable}}>{{/isNullable}}{{/required}}{{^required}}>{{/required}},
     {{/vars}}
     },
     {{/x-mapped-models}}
@@ -52,10 +53,10 @@ pub enum {{{classname}}} {
 }
 
 {{/discriminator}}
-
 {{!-- for non-enum schemas --}}
 {{^isEnum}}
 {{^discriminator}}
+{{#description}}/// {{{description}}}{{/description}}
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct {{{classname}}} {
 {{#vars}}
@@ -63,29 +64,35 @@ pub struct {{{classname}}} {
     /// {{{description}}}
     {{/description}}
     #[serde(rename = "{{{baseName}}}"{{^required}}, skip_serializing_if = "Option::is_none"{{/required}})]
-    pub {{{name}}}: {{#required}}{{#isNullable}}Option<{{/isNullable}}{{/required}}{{^required}}Option<{{/required}}{{#isEnum}}{{#isArray}}{{#uniqueItems}}std::collections::HashSet<{{/uniqueItems}}{{^uniqueItems}}Vec<{{/uniqueItems}}{{/isArray}}{{{enumName}}}{{#isArray}}>{{/isArray}}{{/isEnum}}{{^isEnum}}{{#isModel}}Box<{{{dataType}}}>{{/isModel}}{{^isModel}}{{{dataType}}}{{/isModel}}{{/isEnum}}{{#required}}{{#isNullable}}>{{/isNullable}}{{/required}}{{^required}}>{{/required}},
+    pub {{{name}}}: {{#required}}{{#isNullable}}Option<{{/isNullable}}{{/required}}{{^required}}Option<{{/required}}{{#isEnum}}{{#isArray}}{{#uniqueItems}}std::collections::HashSet<{{/uniqueItems}}{{^uniqueItems}}Vec<{{/uniqueItems}}{{/isArray}}{{{enumName}}}{{#isArray}}>{{/isArray}}{{/isEnum}}{{^isEnum}}{{{dataType}}}{{/isEnum}}{{#required}}{{#isNullable}}>{{/isNullable}}{{/required}}{{^required}}>{{/required}},
 {{/vars}}
 }
 
 impl {{{classname}}} {
-    {{#description}}
-    /// {{{description}}}
-    {{/description}}
+    /// {{{classname}}} using only the required fields
     pub fn new({{#requiredVars}}{{{name}}}: {{#isNullable}}Option<{{/isNullable}}{{#isEnum}}{{{enumName}}}{{/isEnum}}{{^isEnum}}{{{dataType}}}{{/isEnum}}{{#isNullable}}>{{/isNullable}}{{^-last}}, {{/-last}}{{/requiredVars}}) -> {{{classname}}} {
         {{{classname}}} {
             {{#vars}}
-            {{{name}}}{{^required}}{{#isArray}}: None{{/isArray}}{{#isMap}}: None{{/isMap}}{{^isContainer}}: None{{/isContainer}}{{/required}}{{#required}}{{#isModel}}: Box::new({{{name}}}){{/isModel}}{{/required}},
+            {{{name}}}{{^required}}{{#isArray}}: None{{/isArray}}{{#isMap}}: None{{/isMap}}{{^isContainer}}: None{{/isContainer}}{{/required}}{{#required}}{{/required}},
+            {{/vars}}
+        }
+    }
+    /// {{{classname}}} using all fields
+    pub fn new_all({{#vars}}{{{name}}}: {{^required}}Option<{{/required}}{{#isNullable}}Option<{{/isNullable}}{{#isEnum}}{{{enumName}}}{{/isEnum}}{{^isEnum}}{{{dataType}}}{{/isEnum}}{{#isNullable}}>{{/isNullable}}{{^required}}>{{/required}}{{^-last}}, {{/-last}}{{/vars}}) -> {{{classname}}} {
+        {{{classname}}} {
+            {{#vars}}
+            {{{name}}},
             {{/vars}}
         }
     }
 }
+
 {{/discriminator}}
 {{/isEnum}}
-
 {{!-- for properties that are of enum type --}}
 {{#vars}}
 {{#isEnum}}
-/// {{{description}}}
+{{#description}}/// {{{description}}}{{/description}}
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Ord, PartialOrd, Hash, Serialize, Deserialize)]
 pub enum {{{enumName}}} {
 {{#allowableValues}}
@@ -101,8 +108,8 @@ impl Default for {{{enumName}}} {
         Self::{{#allowableValues}}{{#enumVars}}{{#-first}}{{{name}}}{{/-first}}{{/enumVars}}{{/allowableValues}}
     }
 }
+
 {{/isEnum}}
 {{/vars}}
-
 {{/model}}
 {{/models}}
