@@ -152,7 +152,7 @@ public class RustActixMayastorCodegen extends DefaultCodegen implements CodegenC
         typeMapping.put("boolean", "bool");
         typeMapping.put("string", "String");
         typeMapping.put("UUID", "uuid::Uuid");
-        typeMapping.put("URI", "String");
+        typeMapping.put("URI", "url::Url");
         typeMapping.put("date", "string");
         typeMapping.put("DateTime", "String");
         typeMapping.put("password", "String");
