@@ -41,7 +41,7 @@ public class RustActixMayastorCodegen extends DefaultCodegen implements CodegenC
     private final Logger LOGGER = LoggerFactory.getLogger(RustActixMayastorCodegen.class);
     private boolean useSingleRequestParameter = false;
     private boolean supportMultipleResponses = false;
-    private String actixWebVersion = "3.2.0";
+    private String actixWebVersion = "4.0.0-beta.8";
     private String actixWebFeatures = "\"rustls\"";
 
     public static final String PACKAGE_NAME = "packageName";
