@@ -53,8 +53,8 @@ public class RustActixMayastorCodegen extends DefaultCodegen implements CodegenC
 
     protected String packageName = "openapi";
     protected String packageVersion = "1.0.0";
-    protected String apiDocPath = "docs/";
-    protected String modelDocPath = "docs/";
+    protected String apiDocPath = "docs/apis/";
+    protected String modelDocPath = "docs/models/";
     protected String apiFolder = "src/apis";
     protected String modelFolder = "src/models";
     protected String enumSuffix = ""; // default to empty string for backward compatibility
@@ -279,6 +279,10 @@ public class RustActixMayastorCodegen extends DefaultCodegen implements CodegenC
             this.setSupportMultipleReturns(convertPropertyToBoolean(SUPPORT_MULTIPLE_RESPONSES));
         }
         writePropertyBack(SUPPORT_MULTIPLE_RESPONSES, getSupportMultipleReturns());
+
+        // the option doesn't seem to be parsed correctly by the cmdline args - empty means default!??
+        // so just set this to empty in the generator
+        setApiNameSuffix("");
 
         additionalProperties.put(CodegenConstants.PACKAGE_NAME, packageName);
         additionalProperties.put(CodegenConstants.PACKAGE_VERSION, packageVersion);
