@@ -43,13 +43,15 @@ public class RustActixMayastorCodegen extends DefaultCodegen implements CodegenC
     private boolean supportMultipleResponses = false;
     private String actixWebVersion = "4.0.0-beta.8";
     private String actixWebFeatures = "\"rustls\"";
+    private String actixWebTelemetryVersion = "0.11.0-beta.3";
 
     public static final String PACKAGE_NAME = "packageName";
     public static final String PACKAGE_VERSION = "packageVersion";
     public static final String SUPPORT_MULTIPLE_RESPONSES = "supportMultipleResponses";
     public static final String ACTIX_WEB_VERSION = "actixWebVersion";
     public static final String ACTIX_WEB_FEATURES = "actixWebFeatures";
-    
+    public static final String ACTIX_WEB_TELEMETRY_VERSION = "actixWebTelemetryVersion";
+
 
     protected String packageName = "openapi";
     protected String packageVersion = "1.0.0";
@@ -80,6 +82,7 @@ public class RustActixMayastorCodegen extends DefaultCodegen implements CodegenC
                 .securityFeatures(EnumSet.of(
                         SecurityFeature.BasicAuth,
                         SecurityFeature.ApiKey,
+                        SecurityFeature.BearerToken,
                         SecurityFeature.OAuth2_Implicit
                 ))
                 .excludeGlobalFeatures(
@@ -179,6 +182,8 @@ public class RustActixMayastorCodegen extends DefaultCodegen implements CodegenC
                 .defaultValue(getActixWebVersion()));
         cliOptions.add(new CliOption(ACTIX_WEB_FEATURES, "Actix Web Dependency features used by Cargo.toml")
                 .defaultValue(getActixWebFeatures()));
+        cliOptions.add(new CliOption(ACTIX_WEB_TELEMETRY_VERSION, "Actix Web OpenTelemetry version used by Cargo.toml")
+                .defaultValue(getActixWebFeatures()));
 
         cliOptions.add(new CliOption(SUPPORT_MULTIPLE_RESPONSES, "If set, return type wraps an enum of all possible 2xx schemas. This option is for 'reqwest' library only", SchemaTypeUtil.BOOLEAN_TYPE)
             .defaultValue(Boolean.FALSE.toString()));
@@ -269,6 +274,12 @@ public class RustActixMayastorCodegen extends DefaultCodegen implements CodegenC
             //not set, use to be passed to template
             additionalProperties.put(ACTIX_WEB_FEATURES, getActixWebFeatures());
         }
+        if (additionalProperties.containsKey(ACTIX_WEB_TELEMETRY_VERSION)) {
+            this.setActixWebTelemetryVersion((String) additionalProperties.get(ACTIX_WEB_TELEMETRY_VERSION));
+        } else {
+            //not set, use to be passed to template
+            additionalProperties.put(ACTIX_WEB_TELEMETRY_VERSION, getActixWebTelemetryVersion());
+        }
 
         if (additionalProperties.containsKey(CodegenConstants.USE_SINGLE_REQUEST_PARAMETER)) {
             this.setUseSingleRequestParameter(convertPropertyToBoolean(CodegenConstants.USE_SINGLE_REQUEST_PARAMETER));
@@ -292,6 +303,7 @@ public class RustActixMayastorCodegen extends DefaultCodegen implements CodegenC
 
         apiTemplateFiles.put("api.mustache", ".rs");
         apiTemplateFiles.put("handlers.mustache", "_handlers.rs");
+        apiTemplateFiles.put("api_clients.mustache", "_client.rs");
 
         modelPackage = packageName;
         apiPackage = packageName;
@@ -303,6 +315,9 @@ public class RustActixMayastorCodegen extends DefaultCodegen implements CodegenC
         supportingFiles.add(new SupportingFile("model_mod.mustache", modelFolder, "mod.rs"));
         supportingFiles.add(new SupportingFile("lib.mustache", "src", "lib.rs"));
         supportingFiles.add(new SupportingFile("Cargo.mustache", "", "Cargo.toml"));
+
+        supportingFiles.add(new SupportingFile("configuration.mustache", apiFolder, "configuration.rs"));
+        supportingFiles.add(new SupportingFile("client.mustache", apiFolder, "client.rs"));
     }
 
     public String getActixWebVersion() {
@@ -319,6 +334,14 @@ public class RustActixMayastorCodegen extends DefaultCodegen implements CodegenC
 
     public void setActixWebFeatures(String actixWebFeatures) {
         this.actixWebFeatures = actixWebFeatures;
+    }
+
+    public String getActixWebTelemetryVersion() {
+        return actixWebTelemetryVersion;
+    }
+
+    public void setActixWebTelemetryVersion(String actixWebTelemetryVersion) {
+        this.actixWebTelemetryVersion = actixWebTelemetryVersion;
     }
 
     public boolean getSupportMultipleReturns() {
@@ -517,7 +540,18 @@ public class RustActixMayastorCodegen extends DefaultCodegen implements CodegenC
         List<CodegenOperation> operations = (List<CodegenOperation>) objectMap.get("operation");
         for (CodegenOperation operation : operations) {           
             operation.vendorExtensions.put("x-httpMethodLower", operation.httpMethod.toLowerCase(Locale.ROOT));
+            operation.vendorExtensions.put("x-httpMethodUpper", operation.httpMethod.toUpperCase(Locale.ROOT));
+            String path = operation.path;
+            
             operation.httpMethod = StringUtils.camelize(operation.httpMethod.toLowerCase(Locale.ROOT));
+            for (CodegenParameter param : operation.pathParams) {
+                if ("String".equals(param.dataType) && "url".equals(param.dataFormat)) {
+                    path = path.replaceAll(String.format("\\{%s\\}", param.baseName), String.format("\\{%s:.*\\}", param.baseName));
+                    operation.vendorExtensions.put("x-actix-query-string", true);
+                }
+            }
+
+            operation.vendorExtensions.put("x-actixPath", path);
 
             // add support for single request parameter using x-group-parameters
             if (!operation.vendorExtensions.containsKey("x-group-parameters") && useSingleRequestParameter) {

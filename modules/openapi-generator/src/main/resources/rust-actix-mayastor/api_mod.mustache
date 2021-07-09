@@ -182,3 +182,11 @@ pub use self::{{{classFilename}}}::{{{classname}}};
 {{/operations}}
 {{/apis}}
 {{/apiInfo}}
+
+pub mod configuration;
+pub mod client;
+{{#apiInfo}}
+{{#apis}}
+pub mod {{{classFilename}}}_client;
+{{/apis}}
+{{/apiInfo}}

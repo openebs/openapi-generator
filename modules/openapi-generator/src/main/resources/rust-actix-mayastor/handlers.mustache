@@ -18,7 +18,7 @@ pub fn configure<T: crate::apis::{{{classname}}} + 'static{{#operations}}{{#oper
 /// {{{.}}}
 {{/notes}}
        .service(
-            actix_web::web::resource("{{{path}}}")
+            actix_web::web::resource("{{#vendorExtensions}}{{x-actixPath}}{{/vendorExtensions}}")
                 .name("{{{operationId}}}")
                 .guard(actix_web::guard::{{{httpMethod}}}())
                 .route(actix_web::web::{{#vendorExtensions}}{{x-httpMethodLower}}{{/vendorExtensions}}().to({{{operationId}}}::<T{{#hasAuthMethods}}, A{{/hasAuthMethods}}>))
