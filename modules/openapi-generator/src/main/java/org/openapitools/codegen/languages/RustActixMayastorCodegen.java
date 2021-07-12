@@ -43,7 +43,7 @@ public class RustActixMayastorCodegen extends DefaultCodegen implements CodegenC
     private boolean supportMultipleResponses = false;
     private String actixWebVersion = "4.0.0-beta.8";
     private String actixWebFeatures = "\"rustls\"";
-    private String actixWebTelemetryVersion = "0.11.0-beta.3";
+    private String actixWebTelemetryVersion = "0.11.0-beta.4";
 
     public static final String PACKAGE_NAME = "packageName";
     public static final String PACKAGE_VERSION = "packageVersion";
