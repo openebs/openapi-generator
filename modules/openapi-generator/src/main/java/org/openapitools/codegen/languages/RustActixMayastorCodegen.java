@@ -546,7 +546,7 @@ public class RustActixMayastorCodegen extends DefaultCodegen implements CodegenC
             operation.httpMethod = StringUtils.camelize(operation.httpMethod.toLowerCase(Locale.ROOT));
             for (CodegenParameter param : operation.pathParams) {
                 if ("String".equals(param.dataType) && "url".equals(param.dataFormat)) {
-                    path = path.replaceAll(String.format("\\{%s\\}", param.baseName), String.format("\\{%s:.*\\}", param.baseName));
+                    path = path.replaceAll(String.format(Locale.ROOT, "\\{%s\\}", param.baseName), String.format(Locale.ROOT, "\\{%s:.*\\}", param.baseName));
                     operation.vendorExtensions.put("x-actix-query-string", true);
                 }
             }
