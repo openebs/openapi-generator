@@ -1,5 +1,8 @@
-#![allow(clippy::too_many_arguments, clippy::new_without_default, non_camel_case_types)]
+#![allow(clippy::too_many_arguments, clippy::new_without_default, non_camel_case_types, unused_imports)]
 {{>partial_header}}
+
+use crate::apis::IntoVec;
+
 {{#models}}
 {{#model}}
 {{#description}}
@@ -77,18 +80,18 @@ pub struct {{{classname}}} {
 
 impl {{{classname}}} {
     /// {{{classname}}} using only the required fields
-    pub fn new({{#requiredVars}}{{{name}}}: {{#isNullable}}Option<{{/isNullable}}{{#isEnum}}{{{enumName}}}{{/isEnum}}{{^isEnum}}{{{dataType}}}{{/isEnum}}{{#isNullable}}>{{/isNullable}}{{^-last}}, {{/-last}}{{/requiredVars}}) -> {{{classname}}} {
+    pub fn new({{#requiredVars}}{{{name}}}: {{#isArray}}impl IntoVec<{{#items}}{{dataType}}{{/items}}>{{/isArray}}{{^isArray}}impl Into<{{#isNullable}}Option<{{/isNullable}}{{#isEnum}}{{{enumName}}}{{/isEnum}}{{^isEnum}}{{{dataType}}}{{/isEnum}}{{#isNullable}}{{/isNullable}}>{{/isArray}}{{^-last}}, {{/-last}}{{/requiredVars}}) -> {{{classname}}} {
         {{{classname}}} {
             {{#vars}}
-            {{{name}}}{{^required}}{{#isArray}}: None{{/isArray}}{{#isMap}}: None{{/isMap}}{{^isContainer}}: None{{/isContainer}}{{/required}}{{#required}}{{/required}},
+            {{{name}}}{{#required}}{{#isArray}}: {{{name}}}.into_vec(){{/isArray}}{{^isArray}}: {{{name}}}.into(){{/isArray}}{{/required}}{{^required}}{{#isArray}}: None{{/isArray}}{{#isMap}}: None{{/isMap}}{{^isContainer}}: None{{/isContainer}}{{/required}}{{#required}}{{/required}},
             {{/vars}}
         }
     }
     /// {{{classname}}} using all fields
-    pub fn new_all({{#vars}}{{{name}}}: {{^required}}Option<{{/required}}{{#isNullable}}Option<{{/isNullable}}{{#isEnum}}{{{enumName}}}{{/isEnum}}{{^isEnum}}{{{dataType}}}{{/isEnum}}{{#isNullable}}>{{/isNullable}}{{^required}}>{{/required}}{{^-last}}, {{/-last}}{{/vars}}) -> {{{classname}}} {
+    pub fn new_all({{#vars}}{{{name}}}: {{#isArray}}impl IntoVec<{{#items}}{{dataType}}{{/items}}>{{/isArray}}{{^isArray}}impl Into<{{^required}}Option<{{/required}}{{#isNullable}}Option<{{/isNullable}}{{#isEnum}}{{{enumName}}}{{/isEnum}}{{^isEnum}}{{{dataType}}}{{/isEnum}}{{#isNullable}}>{{/isNullable}}{{^required}}>{{/required}}>{{/isArray}}{{^-last}}, {{/-last}}{{/vars}}) -> {{{classname}}} {
         {{{classname}}} {
             {{#vars}}
-            {{{name}}},
+            {{{name}}}: {{{name}}}{{#isArray}}.into_vec(){{/isArray}}{{^isArray}}.into(){{/isArray}},
             {{/vars}}
         }
     }
