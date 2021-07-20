@@ -43,7 +43,7 @@ public class RustActixMayastorCodegen extends DefaultCodegen implements CodegenC
     private boolean supportMultipleResponses = false;
     private String actixWebVersion = "4.0.0-beta.8";
     private String actixWebFeatures = "\"rustls\"";
-    private String actixWebTelemetryVersion = "0.11.0-beta.4";
+    private String actixWebTelemetryVersion = "\"0.11.0-beta.4\"";
 
     public static final String PACKAGE_NAME = "packageName";
     public static final String PACKAGE_VERSION = "packageVersion";
@@ -51,6 +51,7 @@ public class RustActixMayastorCodegen extends DefaultCodegen implements CodegenC
     public static final String ACTIX_WEB_VERSION = "actixWebVersion";
     public static final String ACTIX_WEB_FEATURES = "actixWebFeatures";
     public static final String ACTIX_WEB_TELEMETRY_VERSION = "actixWebTelemetryVersion";
+    private static final String NO_FORMAT = "%%NO_FORMAT";
 
 
     protected String packageName = "openapi";
@@ -511,12 +512,116 @@ public class RustActixMayastorCodegen extends DefaultCodegen implements CodegenC
     }
 
     @Override
-    public String getSchemaType(Schema p) {
-        String schemaType = super.getSchemaType(p);
+    public String getSchemaType(Schema schema) {
+        String schemaType = super.getSchemaType(schema);
+        schemaType = matchingIntType(schemaType, schema);
         if (typeMapping.containsKey(schemaType)) {
             return typeMapping.get(schemaType);
         }
         return schemaType;
+    }
+
+    private long requiredBits(Long bound, boolean unsigned) {
+        if (bound == null) return 0;
+
+        if (unsigned) {
+            if (bound < 0) {
+                throw new RuntimeException("Unsigned bound is negative: " + bound);
+            }
+            return 65L - Long.numberOfLeadingZeros(bound >> 1);
+        }
+
+        return 65L - Long.numberOfLeadingZeros(
+                // signed bounds go from (-n) to (n - 1), i.e. i8 goes from -128 to 127
+                bound < 0 ? Math.abs(bound) - 1 : bound);
+    }
+
+    private String matchingIntType(String schemaType, Schema schema) {
+        if ("integer".equals(schemaType) || "long".equals(schemaType)) {
+            // match int type to schema constraints
+            Long inclusiveMinimum = schema.getMinimum() != null ? schema.getMinimum().longValue() : null;
+            boolean exclusiveMinimum = schema.getExclusiveMinimum() != null ? schema.getExclusiveMinimum() : false;
+            if (inclusiveMinimum != null && exclusiveMinimum) {
+                inclusiveMinimum++;
+            }
+
+            // a signed int is required unless a minimum greater than zero is set
+            boolean unsigned = inclusiveMinimum != null && inclusiveMinimum >= 0;
+
+            Long inclusiveMaximum = schema.getMaximum() != null ? schema.getMaximum().longValue() : null;
+            boolean exclusiveMaximum = schema.getExclusiveMaximum() != null ? schema.getExclusiveMaximum() : false;
+            if (inclusiveMaximum != null && exclusiveMaximum) {
+                inclusiveMaximum--;
+            }
+
+            switch (schema.getFormat() == null ? NO_FORMAT : schema.getFormat()) {
+                // standard swagger formats
+                case "int32":
+                    return unsigned ? "u32" : "i32";
+
+                case "int64":
+                    return unsigned ? "u64" : "i64";
+
+                case NO_FORMAT:
+                    return matchingNonStandardIntType(NO_FORMAT, unsigned, inclusiveMinimum, inclusiveMaximum);
+
+                default:
+                    // non-standard format, use ranges to figure out the type
+                    return matchingNonStandardIntType(schema.getFormat(), unsigned, inclusiveMinimum, inclusiveMaximum);
+            }
+        } else {
+            return schemaType;
+        }
+    }
+
+    private String matchingNonStandardIntType(String format, boolean unsigned, Long inclusiveMin, Long inclusiveMax) {
+        long requiredMinBits = requiredBits(inclusiveMin, unsigned);
+        long requiredMaxBits = requiredBits(inclusiveMax, unsigned);
+        long requiredBits = Math.max(requiredMinBits, requiredMaxBits);
+
+        if (requiredMaxBits == 0) {
+            switch (format) {
+                case NO_FORMAT:
+                    requiredMaxBits = 0;
+                case "uint8":
+                    requiredMaxBits = 8;
+                case "int8":
+                    requiredMaxBits = 7;
+                case "uint16":
+                    requiredMaxBits = 16;
+                case "int16":
+                    requiredMaxBits = 15;
+                case "uint32":
+                    requiredMaxBits = 32;
+                case "int32":
+                    requiredMaxBits = 31;
+                case "uint64":
+                    requiredMaxBits = 64;
+                case "int64":
+                    requiredMaxBits = 63;
+                default:
+                    requiredMaxBits = 0;
+            };
+        }
+
+        if (requiredMaxBits == 0 && requiredMinBits <= 16) {
+            // rust 'size' types are arch-specific and thus somewhat loose
+            // so they are used when no format or maximum are specified
+            // and as long as minimum stays within plausible smallest ptr size (16 bits)
+            // this way all rust types are obtainable without defining custom formats
+            // this behavior (default int size) could also follow a generator flag
+            return unsigned ? "usize" : "isize";
+
+        } else if (requiredBits <= 8) {
+            return unsigned ? "u8" : "i8";
+
+        } else if (requiredBits <= 16) {
+            return unsigned ? "u16" : "i16";
+
+        } else if (requiredBits <= 32) {
+            return unsigned ? "u32" : "i32";
+        }
+        return unsigned ? "u64" : "i64";
     }
 
     @Override
