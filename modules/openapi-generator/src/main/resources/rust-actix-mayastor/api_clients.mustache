@@ -1,3 +1,5 @@
+#![allow(clippy::vec_init_then_push)]
+
 use crate::apis::{
     client::{Error, ResponseContent, ResponseContentUnexpected},
     configuration,
@@ -56,16 +58,20 @@ impl {{{classname}}} for {{{classname}}}Client {
         let local_var_uri_str = format!("{}{{{path}}}", configuration.base_path{{#pathParams}}, {{{baseName}}}={{#isString}}crate::apis::client::urlencode({{/isString}}{{{paramName}}}{{^required}}.unwrap_or_default(){{/required}}{{#required}}{{#isNullable}}.unwrap_or_default(){{/isNullable}}{{/required}}{{#isArray}}.join(",").as_ref(){{/isArray}}{{#isString}}){{/isString}}{{^isString}}.to_string(){{/isString}}{{/pathParams}});
         let mut local_var_req_builder = local_var_client.request(awc::http::Method::{{#vendorExtensions}}{{x-httpMethodUpper}}{{/vendorExtensions}}, local_var_uri_str.as_str());
 
+        {{#hasQueryParams}}
+        let mut query_params = vec![];
         {{#queryParams}}
         {{#required}}
-        local_var_req_builder = local_var_req_builder.query(&[("{{{baseName}}}", &{{{paramName}}}{{#isArray}}.into_iter().map(|p| p.to_string()).collect::<Vec<String>>().join(","){{/isArray}}.to_string())])?;
+        query_params.push(("{{{baseName}}}", {{{paramName}}}{{#isArray}}.into_iter().map(|p| p.to_string()).collect::<Vec<String>>().join(","){{/isArray}}.to_string()));
         {{/required}}
         {{^required}}
         if let Some(ref local_var_str) = {{{paramName}}} {
-            local_var_req_builder = local_var_req_builder.query(&[("{{{baseName}}}", &local_var_str{{#isArray}}.into_iter().map(|p| p.to_string()).collect::<Vec<String>>().join(","){{/isArray}}.to_string())])?;
+            query_params.push(("{{{baseName}}}", local_var_str{{#isArray}}.into_iter().map(|p| p.to_string()).collect::<Vec<String>>().join(","){{/isArray}}.to_string()));
         }
         {{/required}}
         {{/queryParams}}
+        local_var_req_builder = local_var_req_builder.query(&query_params)?;
+        {{/hasQueryParams}}
         {{#hasAuthMethods}}
         {{#authMethods}}
         {{#isApiKey}}
@@ -76,7 +82,9 @@ impl {{{classname}}} for {{{classname}}}Client {
                 Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
                 None => local_var_key,
             };
-            local_var_req_builder = local_var_req_builder.query(&[("{{{keyParamName}}}", local_var_value)])?;
+            {{^hasQueryParams}}let mut query_params = vec![];{{/hasQueryParams}}
+            query_params.push(("{{{keyParamName}}}", local_var_value));
+            local_var_req_builder = local_var_req_builder.query(&query_params)?;
         }
         {{/isKeyInQuery}}
         {{/isApiKey}}
