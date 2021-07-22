@@ -11,12 +11,6 @@ pub fn configure<T: crate::apis::{{{classname}}} + 'static{{#operations}}{{#oper
     cfg
 {{#operations}}
 {{#operation}}
-{{#description}}
-/// {{{.}}}
-{{/description}}
-{{#notes}}
-/// {{{.}}}
-{{/notes}}
        .service(
             actix_web::web::resource("{{#vendorExtensions}}{{x-actixPath}}{{/vendorExtensions}}")
                 .name("{{{operationId}}}")
