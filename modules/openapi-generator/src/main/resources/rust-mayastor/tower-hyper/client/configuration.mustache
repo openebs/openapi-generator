@@ -2,7 +2,7 @@
 
 #![allow(clippy::type_complexity)]
 #[cfg(feature = "tower-trace")]
-use crate::client::tower::body::BodyStreamExt;
+use crate::clients::tower::body::BodyStreamExt;
 
 use tokio::sync::Mutex;
 use hyper::{service::Service, Body, Request, Response};
@@ -140,25 +140,26 @@ impl Configuration {
             // )
             .service(client);
 
-        Ok(match trace_requests {
-            false => Self::new_with_client(
+        match trace_requests {
+            false => Ok(Self::new_with_client(
                 url,
                 tower::ServiceBuilder::new().service(backend_service),
                 bearer_access_token,
-            ),
+            )),
             true => {
                 #[cfg(feature = "tower-trace")]
-                Self::new_with_client(
+                let result = Ok(Self::new_with_client(
                     url,
                     tower::ServiceBuilder::new()
                         .layer(tracing_layer)
                         .service(backend_service),
                     bearer_access_token,
-                )
+                ));
                 #[cfg(not(feature = "tower-trace"))]
-                Err(Error::NoTracingFeature{})
+                let result = Err(Error::NoTracingFeature{});
+                result
             },
-        })
+        }
     }
 
     /// New `Self` with a provided client
