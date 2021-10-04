@@ -1,0 +1,240 @@
+{{>partial_header}}
+
+#![allow(clippy::type_complexity)]
+#[cfg(feature = "tower-trace")]
+use crate::client::tower::body::BodyStreamExt;
+
+use tokio::sync::Mutex;
+use hyper::{service::Service, Body, Request, Response};
+use std::{sync::Arc, task::Poll, time::Duration};
+use tower::{util::BoxService, Layer, ServiceExt};
+
+#[cfg(feature = "tower-trace")]
+use tower_http::{
+    classify::ServerErrorsFailureClass, map_response_body::MapResponseBodyLayer, trace::TraceLayer,
+};
+use tracing::Span;
+use tracing_opentelemetry::OpenTelemetrySpanExt;
+use opentelemetry::{global, trace::SpanKind};
+use opentelemetry_http::HeaderInjector;
+
+/// Tower Service Error
+pub type BoxedError = Box<dyn std::error::Error + Send + Sync>;
+
+#[derive(Clone)]
+pub struct Configuration {
+    pub base_path: url::Url,
+    pub user_agent: Option<String>,
+    pub client_service: Arc<Mutex<BoxService<Request<Body>, Response<Body>, BoxedError>>>,
+    pub basic_auth: Option<BasicAuth>,
+    pub oauth_access_token: Option<String>,
+    pub bearer_access_token: Option<String>,
+    pub api_key: Option<ApiKey>,
+}
+
+pub type BasicAuth = (String, Option<String>);
+
+#[derive(Debug, Clone)]
+pub struct ApiKey {
+    pub prefix: Option<String>,
+    pub key: String,
+}
+
+/// Configuration creation Error
+#[derive(Debug)]
+pub enum Error {
+    Certificate,
+    NoTracingFeature,
+}
+
+impl Configuration {
+    /// New `Self`
+    pub fn new(
+        mut url: url::Url,
+        timeout: std::time::Duration,
+        bearer_access_token: Option<String>,
+        certificate: Option<&[u8]>,
+        trace_requests: bool,
+    ) -> Result<Self, Error> {
+        #[cfg(feature = "tower-trace")]
+        let tracing_layer = tower::ServiceBuilder::new()
+            .layer(
+                TraceLayer::new_for_http()
+                    .make_span_with(|request: &Request<Body>| {
+                        tracing::debug_span!(
+                            "HTTP",
+                            http.method = %request.method(),
+                            http.url = %request.uri(),
+                            http.status_code = tracing::field::Empty,
+                            otel.name = %format!("{} {}", request.method(), request.uri()),
+                            otel.kind = %SpanKind::Client,
+                            otel.status_code = tracing::field::Empty,
+                        )
+                    })
+                    // to silence the default trace
+                    .on_request(|_request: &Request<Body>, _span: &Span| {
+                        // tracing::debug!("started {} {}", request.method(), request.uri().path())
+                    })
+                    .on_response(
+                        |response: &Response<Body>, _latency: Duration, span: &Span| {
+                            let status = response.status();
+                            span.record("http.status_code", &status.as_u16());
+                            if status.is_client_error() || status.is_server_error() {
+                                span.record("otel.status_code", &"ERROR");
+                            }
+                        },
+                    )
+                    .on_body_chunk(())
+                    .on_failure(
+                        |ec: ServerErrorsFailureClass, _latency: Duration, span: &Span| {
+                            span.record("otel.status_code", &"ERROR");
+                            match ec {
+                                ServerErrorsFailureClass::StatusCode(status) => {
+                                    span.record("http.status_code", &status.as_u16());
+                                    tracing::error!(status=%status, "failed to issue request")
+                                }
+                                ServerErrorsFailureClass::Error(err) => {
+                                    tracing::error!(error=%err, "failed to issue request")
+                                }
+                            }
+                        },
+                    ),
+            )
+            // injects the telemetry context in the http headers
+            .layer(OpenTelContext::new())
+            .into_inner();
+
+        let client = {
+            match certificate {
+                None => {
+                    let connector = hyper_rustls::HttpsConnector::from((
+                        hyper::client::HttpConnector::new(),
+                        std::sync::Arc::new(rustls::ClientConfig::new()),
+                    ));
+                    url.set_scheme("http").ok();
+                    hyper::Client::builder().build(connector)
+                }
+                Some(bytes) => {
+                    let cert_file = &mut std::io::BufReader::new(bytes);
+
+                    let mut config = rustls::ClientConfig::new();
+                    config
+                        .root_store
+                        .add_pem_file(cert_file)
+                        .map_err(|_| Error::Certificate)?;
+
+                    let mut http = hyper::client::HttpConnector::new();
+                    http.enforce_http(false);
+                    let connector =
+                        hyper_rustls::HttpsConnector::from((http, std::sync::Arc::new(config)));
+                    url.set_scheme("https").ok();
+                    hyper::Client::builder().build(connector)
+                }
+            }
+        };
+
+        let backend_service = tower::ServiceBuilder::new()
+            .layer(tower::timeout::TimeoutLayer::new(timeout))
+            // .option_layer(
+            //     bearer_access_token.map(|b| tower_http::auth::AddAuthorizationLayer::bearer(&b)),
+            // )
+            .service(client);
+
+        Ok(match trace_requests {
+            false => Self::new_with_client(
+                url,
+                tower::ServiceBuilder::new().service(backend_service),
+                bearer_access_token,
+            ),
+            true => {
+                #[cfg(feature = "tower-trace")]
+                Self::new_with_client(
+                    url,
+                    tower::ServiceBuilder::new()
+                        .layer(tracing_layer)
+                        .service(backend_service),
+                    bearer_access_token,
+                )
+                #[cfg(not(feature = "tower-trace"))]
+                Err(Error::NoTracingFeature{})
+            },
+        })
+    }
+
+    /// New `Self` with a provided client
+    pub fn new_with_client<S, B>(
+        url: url::Url,
+        client_service: S,
+        bearer_access_token: Option<String>,
+    ) -> Self
+    where
+        S: Service<Request<Body>, Response = Response<B>> + Sync + Send + 'static,
+        S::Future: Send + 'static,
+        S::Error: Into<BoxedError> + std::fmt::Debug,
+        B: http_body::Body<Data = hyper::body::Bytes> + Send + 'static,
+        B::Error: std::error::Error + Send + Sync + 'static,
+    {
+        // Transform response body to `hyper::Body` and use type erased error to avoid type
+        // parameters.
+        let client_service = MapResponseBodyLayer::new(|b: B| Body::wrap_stream(b.into_stream()))
+            .layer(client_service)
+            .map_err(|e| e.into());
+        let client_service = Arc::new(Mutex::new(BoxService::new(client_service)));
+        Self {
+            base_path: url,
+            user_agent: None,
+            client_service,
+            basic_auth: None,
+            oauth_access_token: None,
+            bearer_access_token,
+            api_key: None,
+        }
+    }
+}
+
+/// Add OpenTelemetry Span to the Http Headers
+pub struct OpenTelContext {}
+impl OpenTelContext {
+    fn new() -> Self {
+        Self {}
+    }
+}
+impl<S> Layer<S> for OpenTelContext {
+    type Service = OpenTelContextService<S>;
+
+    fn layer(&self, service: S) -> Self::Service {
+        OpenTelContextService::new(service)
+    }
+}
+
+/// OpenTelemetry Service that injects the current span into the Http Headers
+#[derive(Clone)]
+pub struct OpenTelContextService<S> {
+    service: S,
+}
+impl<S> OpenTelContextService<S> {
+    fn new(service: S) -> Self {
+        Self { service }
+    }
+}
+
+impl<S> Service<hyper::Request<Body>> for OpenTelContextService<S>
+where
+    S: Service<hyper::Request<Body>>,
+{
+    type Response = S::Response;
+    type Error = S::Error;
+    type Future = S::Future;
+
+    fn poll_ready(&mut self, cx: &mut std::task::Context<'_>) -> Poll<Result<(), Self::Error>> {
+        self.service.poll_ready(cx)
+    }
+
+    fn call(&mut self, mut request: hyper::Request<Body>) -> Self::Future {
+        let cx = tracing::Span::current().context();
+        global::get_text_map_propagator(|propagator| {
+            propagator.inject_context(&cx, &mut HeaderInjector(&mut request.headers_mut()))
+        });
+        self.service.call(request)
+    }
+}

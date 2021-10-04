@@ -37,8 +37,8 @@ import java.util.*;
 import static org.openapitools.codegen.utils.StringUtils.camelize;
 import static org.openapitools.codegen.utils.StringUtils.underscore;
 
-public class RustActixMayastorCodegen extends DefaultCodegen implements CodegenConfig {
-    private final Logger LOGGER = LoggerFactory.getLogger(RustActixMayastorCodegen.class);
+public class RustMayastorCodegen extends DefaultCodegen implements CodegenConfig {
+    private final Logger LOGGER = LoggerFactory.getLogger(RustMayastorCodegen.class);
     private boolean useSingleRequestParameter = false;
     private boolean supportMultipleResponses = false;
     private String actixWebVersion = "4.0.0-beta.8";
@@ -55,7 +55,7 @@ public class RustActixMayastorCodegen extends DefaultCodegen implements CodegenC
 
 
     protected String packageName = "openapi";
-    protected String packageVersion = "1.0.0";
+    protected String packageVersion = "2.0.0";
     protected String apiDocPath = "docs/apis/";
     protected String modelDocPath = "docs/models/";
     protected String apiFolder = "src/apis";
@@ -67,14 +67,14 @@ public class RustActixMayastorCodegen extends DefaultCodegen implements CodegenC
     }
 
     public String getName() {
-        return "rust-actix-mayastor";
+        return "rust-mayastor";
     }
 
     public String getHelp() {
-        return "Generates a Rust Actix Server Bindings library (beta).";
+        return "Generates a Rust Bindings library (beta).";
     }
 
-    public RustActixMayastorCodegen() {
+    public RustMayastorCodegen() {
         super();
 
         modifyFeatureSet(features -> features
@@ -104,7 +104,7 @@ public class RustActixMayastorCodegen extends DefaultCodegen implements CodegenC
                 )
         );
 
-        outputFolder = "generated-code/rust-actix-mayastor";
+        outputFolder = "generated-code/rust-mayastor";
         modelTemplateFiles.put("model.mustache", ".rs");
 
         modelDocTemplateFiles.put("model_doc.mustache", ".md");
@@ -113,7 +113,7 @@ public class RustActixMayastorCodegen extends DefaultCodegen implements CodegenC
         // default HIDE_GENERATION_TIMESTAMP to true
         hideGenerationTimestamp = Boolean.TRUE;
 
-        embeddedTemplateDir = templateDir = "rust-actix-mayastor";
+        embeddedTemplateDir = templateDir = "rust-mayastor";
 
         setReservedWordsLowerCase(
                 Arrays.asList(
@@ -260,7 +260,7 @@ public class RustActixMayastorCodegen extends DefaultCodegen implements CodegenC
         if (additionalProperties.containsKey(CodegenConstants.PACKAGE_VERSION)) {
             setPackageVersion((String) additionalProperties.get(CodegenConstants.PACKAGE_VERSION));
         } else {
-            setPackageVersion("1.0.0");
+            setPackageVersion("2.0.0");
         }
 
         if (additionalProperties.containsKey(ACTIX_WEB_VERSION)) {
@@ -301,10 +301,26 @@ public class RustActixMayastorCodegen extends DefaultCodegen implements CodegenC
 
         additionalProperties.put("apiDocPath", apiDocPath);
         additionalProperties.put("modelDocPath", modelDocPath);
+        apiTemplateFiles.put("mod.mustache", "/mod.rs");
+        supportingFiles.add(new SupportingFile("mod.mustache", "src/clients", "mod.rs"));
 
-        apiTemplateFiles.put("api.mustache", ".rs");
-        apiTemplateFiles.put("handlers.mustache", "_handlers.rs");
-        apiTemplateFiles.put("api_clients.mustache", "_client.rs");
+        // Actix
+        apiTemplateFiles.put("actix/server/api.mustache", "/actix/server/mod.rs");
+        apiTemplateFiles.put("actix/server/handlers.mustache", "/actix/server/handlers.rs");
+        apiTemplateFiles.put("actix/mod.mustache", "/actix/mod.rs");
+        apiTemplateFiles.put("actix/client/api_clients.mustache", "/actix/client/mod.rs");
+        supportingFiles.add(new SupportingFile("actix/server/api_mod.mustache", apiFolder, "actix_server.rs"));
+        supportingFiles.add(new SupportingFile("actix/client/configuration.mustache", "src/clients/actix", "configuration.rs"));
+        supportingFiles.add(new SupportingFile("actix/client/client.mustache", "src/clients/actix", "mod.rs"));
+
+        // Tower - Hyper
+        apiTemplateFiles.put("tower-hyper/mod.mustache", "/tower/mod.rs");
+        apiTemplateFiles.put("tower-hyper/client/api_clients.mustache", "/tower/client/mod.rs");
+        supportingFiles.add(new SupportingFile("tower-hyper/client/configuration.mustache", "src/clients/tower", "configuration.rs"));
+        supportingFiles.add(new SupportingFile("tower-hyper/client/client.mustache", "src/clients/tower", "mod.rs"));
+        supportingFiles.add(new SupportingFile("tower-hyper/client/body.mustache", "src/clients/tower", "body.rs"));
+        supportingFiles.add(new SupportingFile("examples/tower-client-main.mustache", "examples/clients/tower", "main.rs"));
+        
 
         modelPackage = packageName;
         apiPackage = packageName;
@@ -316,9 +332,6 @@ public class RustActixMayastorCodegen extends DefaultCodegen implements CodegenC
         supportingFiles.add(new SupportingFile("model_mod.mustache", modelFolder, "mod.rs"));
         supportingFiles.add(new SupportingFile("lib.mustache", "src", "lib.rs"));
         supportingFiles.add(new SupportingFile("Cargo.mustache", "", "Cargo.toml"));
-
-        supportingFiles.add(new SupportingFile("configuration.mustache", apiFolder, "configuration.rs"));
-        supportingFiles.add(new SupportingFile("client.mustache", apiFolder, "client.rs"));
     }
 
     public String getActixWebVersion() {

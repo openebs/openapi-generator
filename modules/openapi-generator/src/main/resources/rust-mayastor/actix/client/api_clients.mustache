@@ -1,8 +1,7 @@
 #![allow(clippy::vec_init_then_push)]
 
-use crate::apis::{
-    client::{Error, ResponseContent, ResponseContentUnexpected},
-    configuration,
+use crate::clients::actix::{
+    configuration, Error, ResponseContent, ResponseContentUnexpected,
 };
 use actix_web_opentelemetry::ClientExt;
 use std::rc::Rc;
@@ -55,7 +54,7 @@ impl {{{classname}}} for {{{classname}}}Client {
         let configuration = &self.configuration;
         let local_var_client = &configuration.client;
 
-        let local_var_uri_str = format!("{}{{{path}}}", configuration.base_path{{#pathParams}}, {{{baseName}}}={{#isString}}crate::apis::client::urlencode({{/isString}}{{{paramName}}}{{^required}}.unwrap_or_default(){{/required}}{{#required}}{{#isNullable}}.unwrap_or_default(){{/isNullable}}{{/required}}{{#isArray}}.join(",").as_ref(){{/isArray}}{{#isString}}){{/isString}}{{^isString}}.to_string(){{/isString}}{{/pathParams}});
+        let local_var_uri_str = format!("{}{{{path}}}", configuration.base_path{{#pathParams}}, {{{baseName}}}={{#isString}}crate::apis::urlencode({{/isString}}{{{paramName}}}{{^required}}.unwrap_or_default(){{/required}}{{#required}}{{#isNullable}}.unwrap_or_default(){{/isNullable}}{{/required}}{{#isArray}}.join(",").as_ref(){{/isArray}}{{#isString}}){{/isString}}{{^isString}}.to_string(){{/isString}}{{/pathParams}});
         let mut local_var_req_builder = local_var_client.request(awc::http::Method::{{#vendorExtensions}}{{x-httpMethodUpper}}{{/vendorExtensions}}, local_var_uri_str.as_str());
 
         {{#hasQueryParams}}

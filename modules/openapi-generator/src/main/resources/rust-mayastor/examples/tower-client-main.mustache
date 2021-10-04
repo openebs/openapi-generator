@@ -1,0 +1,45 @@
+use openapi::clients::tower::configuration::Configuration;
+use opentelemetry::{global, sdk::propagation::TraceContextPropagator};
+use std::time::Duration;
+use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt, Registry};
+
+fn init_tracing() {
+    let filter = tracing_subscriber::EnvFilter::try_from_default_env()
+        .unwrap_or_else(|_| tracing_subscriber::EnvFilter::new("info"));
+
+    let subscriber = Registry::default()
+        .with(filter)
+        .with(tracing_subscriber::fmt::layer().pretty());
+
+    global::set_text_map_propagator(TraceContextPropagator::new());
+    let tracer = opentelemetry_jaeger::new_pipeline()
+        .with_agent_endpoint("localhost:6831")
+        .with_service_name("example-client")
+        .install_simple()
+        .expect("Should be able to initialise the exporter");
+    let telemetry = tracing_opentelemetry::layer().with_tracer(tracer);
+    subscriber.with(telemetry).init();
+}
+
+#[tokio::main]
+async fn main() {
+    init_tracing();
+    let config = Configuration::new(
+        "http://localhost:8081/v0".parse().unwrap(),
+        Duration::from_secs(5),
+        None,
+        None,
+        true,
+    )
+    .unwrap();
+    let client = openapi::clients::tower::ApiClient::new(config);
+
+    match client.nodes_api().get_nodes().await {
+        Ok(resp) => {
+            println!("resp: {:#?}", resp);
+        }
+        Err(resp) => {
+            println!("resp: {:#?}", resp);
+        }
+    }
+}

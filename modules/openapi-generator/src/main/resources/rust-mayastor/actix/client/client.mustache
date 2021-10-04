@@ -1,4 +1,6 @@
-use super::configuration::Configuration;
+pub mod configuration;
+
+pub use configuration::Configuration;
 use std::{error, fmt, rc::Rc};
 
 #[derive(Clone)]
@@ -6,7 +8,7 @@ pub struct ApiClient {
 {{#apiInfo}}
 {{#apis}}
 {{#operations}}
-    {{{classFilename}}}: Box<dyn crate::apis::{{{classFilename}}}_client::{{{classname}}}>,
+    {{{classFilename}}}: Box<dyn crate::apis::{{{classFilename}}}::actix::client::{{{classname}}}>,
 {{/operations}}
 {{/apis}}
 {{/apiInfo}}
@@ -21,10 +23,10 @@ impl ApiClient {
 {{#apis}}
 {{#operations}}
             {{^-last}}
-            {{{classFilename}}}: Box::new(crate::apis::{{{classFilename}}}_client::{{{classname}}}Client::new(rc.clone())),
+            {{{classFilename}}}: Box::new(crate::apis::{{{classFilename}}}::actix::client::{{{classname}}}Client::new(rc.clone())),
             {{/-last}}
             {{#-last}}
-            {{{classFilename}}}: Box::new(crate::apis::{{{classFilename}}}_client::{{{classname}}}Client::new(rc)),
+            {{{classFilename}}}: Box::new(crate::apis::{{{classFilename}}}::actix::client::{{{classname}}}Client::new(rc)),
             {{/-last}}
 {{/operations}}
 {{/apis}}
@@ -35,7 +37,7 @@ impl ApiClient {
 {{#apiInfo}}
 {{#apis}}
 {{#operations}}
-    pub fn {{{classFilename}}}(&self) -> &dyn crate::apis::{{{classFilename}}}_client::{{{classname}}} {
+    pub fn {{{classFilename}}}(&self) -> &dyn crate::apis::{{{classFilename}}}::actix::client::{{{classname}}} {
         self.{{{classFilename}}}.as_ref()
     }
 {{/operations}}
@@ -129,8 +131,4 @@ impl<T> From<std::io::Error> for Error<T> {
     fn from(e: std::io::Error) -> Self {
         Error::Io(e)
     }
-}
-
-pub fn urlencode<T: AsRef<str>>(s: T) -> String {
-    ::url::form_urlencoded::byte_serialize(s.as_ref().as_bytes()).collect()
 }

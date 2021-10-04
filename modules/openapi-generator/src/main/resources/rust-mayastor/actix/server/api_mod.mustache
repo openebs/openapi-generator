@@ -1,7 +1,4 @@
-pub use actix_web::http::StatusCode;
-pub use url::Url;
-pub use uuid::Uuid;
-
+use actix_web::http::StatusCode;
 use actix_web::{web::ServiceConfig, FromRequest, HttpResponse, ResponseError};
 use serde::Serialize;
 use std::{
@@ -11,7 +8,13 @@ use std::{
 
 {{#apiInfo}}
 {{#apis}}
-pub mod {{{classFilename}}}_handlers;
+{{#operations}}
+{{#operation}}
+{{#-last}}
+pub use crate::apis::{{{classFilename}}}::actix::server::{{{classname}}};
+{{/-last}}
+{{/operation}}
+{{/operations}}
 {{/apis}}
 {{/apiInfo}}
 
@@ -58,7 +61,7 @@ impl<T: Debug + Serialize> ResponseError for RestError<T> {
 
 /// 204 Response with no content
 #[derive(Default)]
-struct NoContent;
+pub(crate) struct NoContent;
 
 impl From<actix_web::web::Json<()>> for NoContent {
     fn from(_: actix_web::web::Json<()>) -> Self {
@@ -182,43 +185,10 @@ pub fn configure<T: {{#apiInfo}}{{#apis}}{{#operations}}{{^-last}}{{{classname}}
 {{#operations}}
 {{#operation}}
 {{#-last}}
-    {{{classFilename}}}_handlers::configure::<T{{#hasAuthMethods}}, A{{/hasAuthMethods}}>(cfg);
+    crate::apis::{{{classFilename}}}::actix::server::handlers::configure::<T{{#hasAuthMethods}}, A{{/hasAuthMethods}}>(cfg);
 {{/-last}}
 {{/operation}}
 {{/operations}}
 {{/apis}}
 {{/apiInfo}}
-}
-
-{{#apiInfo}}
-{{#apis}}
-mod {{{classFilename}}};
-{{#operations}}
-{{#operation}}
-{{#-last}}
-pub use self::{{{classFilename}}}::{{{classname}}};
-{{/-last}}
-{{/operation}}
-{{/operations}}
-{{/apis}}
-{{/apiInfo}}
-
-pub mod configuration;
-pub mod client;
-{{#apiInfo}}
-{{#apis}}
-pub mod {{{classFilename}}}_client;
-{{/apis}}
-{{/apiInfo}}
-
-/// Helper to convert from Vec<F> into Vec<T>
-pub trait IntoVec<T>: Sized {
-    /// Performs the conversion.
-    fn into_vec(self) -> Vec<T>;
-}
-
-impl<F: Into<T>, T> IntoVec<T> for Vec<F> {
-    fn into_vec(self) -> Vec<T> {
-        self.into_iter().map(Into::into).collect()
-    }
 }
