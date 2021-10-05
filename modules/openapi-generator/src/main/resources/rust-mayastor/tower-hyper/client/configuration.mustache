@@ -1,22 +1,26 @@
 {{>partial_header}}
 
 #![allow(clippy::type_complexity)]
-#[cfg(feature = "tower-trace")]
-use crate::clients::tower::body::BodyStreamExt;
+use super::body::BodyStreamExt;
 
-use tokio::sync::Mutex;
 use hyper::{service::Service, Body, Request, Response};
-use std::{sync::Arc, task::Poll, time::Duration};
+use std::sync::Arc;
+use tokio::sync::Mutex;
 use tower::{util::BoxService, Layer, ServiceExt};
 
 #[cfg(feature = "tower-trace")]
-use tower_http::{
-    classify::ServerErrorsFailureClass, map_response_body::MapResponseBodyLayer, trace::TraceLayer,
-};
-use tracing::Span;
-use tracing_opentelemetry::OpenTelemetrySpanExt;
 use opentelemetry::{global, trace::SpanKind};
+#[cfg(feature = "tower-trace")]
 use opentelemetry_http::HeaderInjector;
+
+use tower_http::map_response_body::MapResponseBodyLayer;
+#[cfg(feature = "tower-trace")]
+use tower_http::{classify::ServerErrorsFailureClass, trace::TraceLayer};
+
+#[cfg(feature = "tower-trace")]
+use tracing::Span;
+#[cfg(feature = "tower-trace")]
+use tracing_opentelemetry::OpenTelemetrySpanExt;
 
 /// Tower Service Error
 pub type BoxedError = Box<dyn std::error::Error + Send + Sync>;
@@ -61,7 +65,7 @@ impl Configuration {
             .layer(
                 TraceLayer::new_for_http()
                     .make_span_with(|request: &Request<Body>| {
-                        tracing::debug_span!(
+                        tracing::info_span!(
                             "HTTP",
                             http.method = %request.method(),
                             http.url = %request.uri(),
@@ -76,7 +80,7 @@ impl Configuration {
                         // tracing::debug!("started {} {}", request.method(), request.uri().path())
                     })
                     .on_response(
-                        |response: &Response<Body>, _latency: Duration, span: &Span| {
+                        |response: &Response<Body>, _latency: std::time::Duration, span: &Span| {
                             let status = response.status();
                             span.record("http.status_code", &status.as_u16());
                             if status.is_client_error() || status.is_server_error() {
@@ -86,7 +90,9 @@ impl Configuration {
                     )
                     .on_body_chunk(())
                     .on_failure(
-                        |ec: ServerErrorsFailureClass, _latency: Duration, span: &Span| {
+                        |ec: ServerErrorsFailureClass,
+                         _latency: std::time::Duration,
+                         span: &Span| {
                             span.record("otel.status_code", &"ERROR");
                             match ec {
                                 ServerErrorsFailureClass::StatusCode(status) => {
@@ -156,9 +162,9 @@ impl Configuration {
                     bearer_access_token,
                 ));
                 #[cfg(not(feature = "tower-trace"))]
-                let result = Err(Error::NoTracingFeature{});
+                let result = Err(Error::NoTracingFeature {});
                 result
-            },
+            }
         }
     }
 
@@ -194,12 +200,15 @@ impl Configuration {
 }
 
 /// Add OpenTelemetry Span to the Http Headers
+#[cfg(feature = "tower-trace")]
 pub struct OpenTelContext {}
+#[cfg(feature = "tower-trace")]
 impl OpenTelContext {
     fn new() -> Self {
         Self {}
     }
 }
+#[cfg(feature = "tower-trace")]
 impl<S> Layer<S> for OpenTelContext {
     type Service = OpenTelContextService<S>;
 
@@ -209,16 +218,19 @@ impl<S> Layer<S> for OpenTelContext {
 }
 
 /// OpenTelemetry Service that injects the current span into the Http Headers
+#[cfg(feature = "tower-trace")]
 #[derive(Clone)]
 pub struct OpenTelContextService<S> {
     service: S,
 }
+#[cfg(feature = "tower-trace")]
 impl<S> OpenTelContextService<S> {
     fn new(service: S) -> Self {
         Self { service }
     }
 }
 
+#[cfg(feature = "tower-trace")]
 impl<S> Service<hyper::Request<Body>> for OpenTelContextService<S>
 where
     S: Service<hyper::Request<Body>>,
@@ -227,7 +239,10 @@ where
     type Error = S::Error;
     type Future = S::Future;
 
-    fn poll_ready(&mut self, cx: &mut std::task::Context<'_>) -> Poll<Result<(), Self::Error>> {
+    fn poll_ready(
+        &mut self,
+        cx: &mut std::task::Context<'_>,
+    ) -> std::task::Poll<Result<(), Self::Error>> {
         self.service.poll_ready(cx)
     }
 

@@ -27,7 +27,7 @@ impl Clone for {{{classname}}}Client {
 
 #[async_trait::async_trait]
 #[dyn_clonable::clonable]
-pub trait {{{classname}}}: Clone {
+pub trait {{{classname}}}: Clone + Send + Sync {
     {{#operations}}
     {{#operation}}
     {{#description}}

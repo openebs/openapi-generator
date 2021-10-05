@@ -1,7 +1,8 @@
-#[cfg(feature = "tower-trace")]
 mod body;
 pub mod configuration;
 
+pub use configuration::Configuration;
+pub use url::Url;
 use configuration::BoxedError;
 
 use std::ops::Deref;
@@ -19,7 +20,7 @@ pub struct ApiClient {
 }
 
 impl ApiClient {
-    pub fn new(configuration: configuration::Configuration) -> ApiClient {
+    pub fn new(configuration: Configuration) -> ApiClient {
         let rc = Arc::new(configuration);
 
         ApiClient {
@@ -63,6 +64,10 @@ impl<T> ResponseContent<T> {
     /// Get a reference to the body
     pub fn body(&self) -> &T {
         &self.body
+    }
+    /// Convert self into the body
+    pub fn into_body(self) -> T {
+        self.body
     }
 }
 
