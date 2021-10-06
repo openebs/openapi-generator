@@ -4,6 +4,10 @@ version = "{{{packageVersion}}}"
 authors = ["OpenAPI Generator team and contributors"]
 edition = "2018"
 
+[lib]
+name = "{{{packageName}}}"
+path = "src/lib.rs"
+
 [[example]]
 name = "tower-client"
 path = "./examples/clients/tower/main.rs"
