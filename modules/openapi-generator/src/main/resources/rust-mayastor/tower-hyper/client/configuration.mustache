@@ -110,6 +110,7 @@ impl Configuration {
             .layer(OpenTelContext::new())
             .into_inner();
 
+        url.set_path(&format!("{}{{basePathWithoutHost}}", url.path().trim_end_matches('/')));
         let client = {
             match certificate {
                 None => {

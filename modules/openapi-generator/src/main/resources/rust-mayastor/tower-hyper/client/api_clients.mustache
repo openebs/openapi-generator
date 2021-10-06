@@ -182,7 +182,7 @@ impl {{{classname}}} for {{{classname}}}Client {
         {{^hasBodyParam}}
         let body = hyper::Body::empty();
         {{/hasBodyParam}}
-        let request = local_var_req_builder.uri(local_var_uri_str).body(body).map_err(RequestError::BuildRequest)?;
+        let request = local_var_req_builder.uri(local_var_uri_str).header("content-type", "application/json").body(body).map_err(RequestError::BuildRequest)?;
 
         let local_var_resp = {
             let mut client_service = configuration.client_service.lock().await;
