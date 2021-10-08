@@ -12,6 +12,7 @@ use tower::{util::BoxService, Layer, ServiceExt};
 use opentelemetry::{global, trace::SpanKind};
 #[cfg(feature = "tower-trace")]
 use opentelemetry_http::HeaderInjector;
+use rustls::{Certificate, RootCertStore, ServerCertVerified, ServerCertVerifier, TLSError};
 
 use tower_http::map_response_body::MapResponseBodyLayer;
 #[cfg(feature = "tower-trace")]
@@ -110,15 +111,23 @@ impl Configuration {
             .layer(OpenTelContext::new())
             .into_inner();
 
-        url.set_path(&format!("{}{{basePathWithoutHost}}", url.path().trim_end_matches('/')));
+        url.set_path(&format!("{}/v0", url.path().trim_end_matches('/')));
         let client = {
             match certificate {
                 None => {
-                    let connector = hyper_rustls::HttpsConnector::from((
-                        hyper::client::HttpConnector::new(),
-                        std::sync::Arc::new(rustls::ClientConfig::new()),
-                    ));
-                    url.set_scheme("http").ok();
+                    let mut http = hyper::client::HttpConnector::new();
+
+                    let mut tls = rustls::ClientConfig::new();
+                    if url.scheme() == "https" {
+                        http.enforce_http(false);
+                        tls.dangerous()
+                            .set_certificate_verifier(std::sync::Arc::new(
+                                DisableServerCertVerifier {},
+                            ));
+                    }
+
+                    let connector =
+                        hyper_rustls::HttpsConnector::from((http, std::sync::Arc::new(tls)));
                     hyper::Client::builder().build(connector)
                 }
                 Some(bytes) => {
@@ -253,5 +262,18 @@ where
             propagator.inject_context(&cx, &mut HeaderInjector(&mut request.headers_mut()))
         });
         self.service.call(request)
+    }
+}
+
+struct DisableServerCertVerifier {}
+impl ServerCertVerifier for DisableServerCertVerifier {
+    fn verify_server_cert(
+        &self,
+        _roots: &RootCertStore,
+        _presented_certs: &[Certificate],
+        _dns_name: webpki::DNSNameRef,
+        _ocsp_response: &[u8],
+    ) -> Result<ServerCertVerified, TLSError> {
+        Ok(ServerCertVerified::assertion())
     }
 }

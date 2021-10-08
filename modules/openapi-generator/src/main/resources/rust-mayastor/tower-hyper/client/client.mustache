@@ -211,3 +211,9 @@ impl<T> ResponseError<T> {
         }
     }
 }
+
+impl std::fmt::Debug for ApiClient {
+    fn fmt(&self, _f: &mut std::fmt::Formatter<'_>) -> fmt::Result {
+        fmt::Result::Ok(())
+    }
+}
