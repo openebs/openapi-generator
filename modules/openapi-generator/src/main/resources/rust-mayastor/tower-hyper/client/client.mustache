@@ -20,6 +20,51 @@ pub struct ApiClient {
 {{/apiInfo}}
 }
 
+/// Same as `ApiClient` but returns the body directly
+pub mod direct {
+    #[derive(Clone)]
+    pub struct ApiClient {
+    {{#apiInfo}}
+    {{#apis}}
+    {{#operations}}
+        {{{classFilename}}}: Box<dyn crate::apis::{{{classFilename}}}::tower::client::direct::{{{classname}}}>,
+    {{/operations}}
+    {{/apis}}
+    {{/apiInfo}}
+    }
+
+    impl ApiClient {
+        pub fn new(configuration: super::Configuration) -> ApiClient {
+            let rc = super::Arc::new(configuration);
+
+            ApiClient {
+    {{#apiInfo}}
+    {{#apis}}
+    {{#operations}}
+                {{^-last}}
+                {{{classFilename}}}: Box::new(crate::apis::{{{classFilename}}}::tower::client::{{{classname}}}Client::new(rc.clone())),
+                {{/-last}}
+                {{#-last}}
+                {{{classFilename}}}: Box::new(crate::apis::{{{classFilename}}}::tower::client::{{{classname}}}Client::new(rc)),
+                {{/-last}}
+    {{/operations}}
+    {{/apis}}
+    {{/apiInfo}}
+            }
+        }
+
+    {{#apiInfo}}
+    {{#apis}}
+    {{#operations}}
+        pub fn {{{classFilename}}}(&self) -> &dyn crate::apis::{{{classFilename}}}::tower::client::direct::{{{classname}}} {
+            self.{{{classFilename}}}.as_ref()
+        }
+    {{/operations}}
+    {{/apis}}
+    {{/apiInfo}}
+    }
+}
+
 impl ApiClient {
     pub fn new(configuration: Configuration) -> ApiClient {
         let rc = Arc::new(configuration);

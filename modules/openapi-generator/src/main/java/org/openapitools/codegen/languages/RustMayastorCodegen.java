@@ -302,7 +302,7 @@ public class RustMayastorCodegen extends DefaultCodegen implements CodegenConfig
         additionalProperties.put("apiDocPath", apiDocPath);
         additionalProperties.put("modelDocPath", modelDocPath);
         apiTemplateFiles.put("mod.mustache", "/mod.rs");
-        supportingFiles.add(new SupportingFile("mod.mustache", "src/clients", "mod.rs"));
+        supportingFiles.add(new SupportingFile("mod_clients.mustache", "src/clients", "mod.rs"));
 
         // Actix
         apiTemplateFiles.put("actix/server/api.mustache", "/actix/server/mod.rs");
