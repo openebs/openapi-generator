@@ -259,7 +259,7 @@ where
     fn call(&mut self, mut request: hyper::Request<Body>) -> Self::Future {
         let cx = tracing::Span::current().context();
         global::get_text_map_propagator(|propagator| {
-            propagator.inject_context(&cx, &mut HeaderInjector(&mut request.headers_mut()))
+            propagator.inject_context(&cx, &mut HeaderInjector(request.headers_mut()))
         });
         self.service.call(request)
     }
