@@ -41,7 +41,7 @@ public class RustMayastorCodegen extends DefaultCodegen implements CodegenConfig
     private final Logger LOGGER = LoggerFactory.getLogger(RustMayastorCodegen.class);
     private boolean useSingleRequestParameter = false;
     private boolean supportMultipleResponses = false;
-    private String actixWebVersion = "4.0.0-beta.8";
+    private String actixWebVersion = "4.0.0-beta.19";
     private String actixWebFeatures = "\"rustls\"";
     private String actixWebTelemetryVersion = "\"0.11.0-beta.4\"";
 
@@ -55,7 +55,7 @@ public class RustMayastorCodegen extends DefaultCodegen implements CodegenConfig
 
 
     protected String packageName = "openapi";
-    protected String packageVersion = "2.0.0";
+    protected String packageVersion = "0.2.0";
     protected String apiDocPath = "docs/apis/";
     protected String modelDocPath = "docs/models/";
     protected String apiFolder = "src/apis";
