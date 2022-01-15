@@ -12,6 +12,8 @@ use tower::{util::BoxService, Layer, ServiceExt};
 use opentelemetry::{global, trace::SpanKind};
 #[cfg(feature = "tower-trace")]
 use opentelemetry_http::HeaderInjector;
+
+#[cfg(all(feature = "tower-client-rls", not(feature = "tower-client-tls")))]
 use rustls::{Certificate, RootCertStore, ServerCertVerified, ServerCertVerifier, TLSError};
 
 use tower_http::map_response_body::MapResponseBodyLayer;
@@ -112,6 +114,8 @@ impl Configuration {
             .into_inner();
 
         url.set_path(&format!("{}/v0", url.path().trim_end_matches('/')));
+
+        #[cfg(all(not(feature = "tower-client-tls"), feature = "tower-client-rls"))]
         let client = {
             match certificate {
                 None => {
@@ -144,6 +148,43 @@ impl Configuration {
                     let connector =
                         hyper_rustls::HttpsConnector::from((http, std::sync::Arc::new(config)));
                     url.set_scheme("https").ok();
+                    hyper::Client::builder().build(connector)
+                }
+            }
+        };
+        #[cfg(feature = "tower-client-tls")]
+        let client = {
+            match certificate {
+                None => {
+                    let mut http = hyper_tls::HttpsConnector::new();
+                    if url.scheme() == "https" {
+                        http.https_only(true);
+                    }
+
+                    let tls = hyper_tls::native_tls::TlsConnector::builder()
+                        .danger_accept_invalid_certs(true)
+                        .build()
+                        .unwrap();
+                    let tls = tokio_native_tls::TlsConnector::from(tls);
+
+                    let connector = hyper_tls::HttpsConnector::from((http, tls));
+                    hyper::Client::builder().build(connector)
+                }
+                Some(bytes) => {
+                    let certificate = hyper_tls::native_tls::Certificate::from_pem(bytes).unwrap();
+
+                    let tls = hyper_tls::native_tls::TlsConnector::builder()
+                        .add_root_certificate(certificate)
+                        .danger_accept_invalid_hostnames(true)
+                        .disable_built_in_roots(true)
+                        // .disable_built_in_roots()
+                        .build()
+                        .unwrap();
+                    let tls = tokio_native_tls::TlsConnector::from(tls);
+
+                    let mut http = hyper_tls::HttpsConnector::new();
+                    http.https_only(true);
+                    let connector = hyper_tls::HttpsConnector::from((http, tls));
                     hyper::Client::builder().build(connector)
                 }
             }
@@ -265,7 +306,9 @@ where
     }
 }
 
+#[cfg(all(feature = "tower-client-rls", not(feature = "tower-client-tls")))]
 struct DisableServerCertVerifier {}
+#[cfg(all(feature = "tower-client-rls", not(feature = "tower-client-tls")))]
 impl ServerCertVerifier for DisableServerCertVerifier {
     fn verify_server_cert(
         &self,
