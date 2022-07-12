@@ -42,7 +42,7 @@ impl Default for {{{classname}}} {
 {{/isEnum}}
 {{!-- for schemas that have a discriminator --}}
 {{#discriminator}}
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
 #[serde(tag = "{{{vendorExtensions.x-tag-name}}}")]
 pub enum {{{classname}}} {
 {{#vendorExtensions}}
@@ -67,7 +67,7 @@ pub enum {{{classname}}} {
 {{^discriminator}}
 {{#description}}/// {{{description}}}{{/description}}
 {{^oneOf}}
-#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, Default, Eq, PartialEq, Serialize, Deserialize)]
 pub struct {{{classname}}} {
 {{#vars}}
     {{#description}}
@@ -99,7 +99,7 @@ impl {{{classname}}} {
 {{/oneOf}}
 {{#oneOf}}
 {{#-first}}
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
 pub enum {{{classname}}} {
 {{#vars}}
     {{#description}}
