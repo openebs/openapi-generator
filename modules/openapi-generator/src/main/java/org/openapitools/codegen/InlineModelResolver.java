@@ -171,6 +171,9 @@ public class InlineModelResolver {
             ComposedSchema m = (ComposedSchema) schema;
             if (m.getAllOf() != null && !m.getAllOf().isEmpty()) {
                 // check to ensure at least of the allOf item is model
+                if (m.getAllOf().size() == 1) {
+                    return false;
+                }
                 for (Schema inner : m.getAllOf()) {
                     if (isModelNeeded(ModelUtils.getReferencedSchema(openAPI, inner))) {
                         return true;
