@@ -41,9 +41,9 @@ public class RustMayastorCodegen extends DefaultCodegen implements CodegenConfig
     private final Logger LOGGER = LoggerFactory.getLogger(RustMayastorCodegen.class);
     private boolean useSingleRequestParameter = false;
     private boolean supportMultipleResponses = false;
-    private String actixWebVersion = "4.0.0-beta.19";
+    private String actixWebVersion = "4.1.0";
     private String actixWebFeatures = "\"rustls\"";
-    private String actixWebTelemetryVersion = "\"0.11.0-beta.4\"";
+    private String actixWebTelemetryVersion = "\"0.12.0\"";
 
     public static final String PACKAGE_NAME = "packageName";
     public static final String PACKAGE_VERSION = "packageVersion";
@@ -55,7 +55,7 @@ public class RustMayastorCodegen extends DefaultCodegen implements CodegenConfig
 
 
     protected String packageName = "openapi";
-    protected String packageVersion = "0.2.0";
+    protected String packageVersion = "0.3.0";
     protected String apiDocPath = "docs/apis/";
     protected String modelDocPath = "docs/models/";
     protected String apiFolder = "src/apis";
@@ -173,7 +173,7 @@ public class RustMayastorCodegen extends DefaultCodegen implements CodegenConfig
         cliOptions.add(new CliOption(CodegenConstants.PACKAGE_NAME, "Rust package name (convention: lowercase).")
                 .defaultValue("openapi"));
         cliOptions.add(new CliOption(CodegenConstants.PACKAGE_VERSION, "Rust package version.")
-                .defaultValue("1.0.0"));
+                .defaultValue("1.1.0"));
         cliOptions.add(new CliOption(CodegenConstants.HIDE_GENERATION_TIMESTAMP, CodegenConstants.HIDE_GENERATION_TIMESTAMP_DESC)
                 .defaultValue(Boolean.TRUE.toString()));
         cliOptions.add(new CliOption(CodegenConstants.USE_SINGLE_REQUEST_PARAMETER, CodegenConstants.USE_SINGLE_REQUEST_PARAMETER_DESC, SchemaTypeUtil.BOOLEAN_TYPE)
