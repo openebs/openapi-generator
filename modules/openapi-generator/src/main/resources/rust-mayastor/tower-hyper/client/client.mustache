@@ -1,13 +1,12 @@
 mod body;
 pub mod configuration;
 
-pub use configuration::Configuration;
-pub use url::Url;
-pub use hyper::StatusCode;
 use configuration::BoxedError;
+pub use configuration::Configuration;
+pub use hyper::{self, StatusCode, Uri};
+pub use url::Url;
 
-use std::ops::Deref;
-use std::{error, fmt, sync::Arc};
+use std::{error, fmt, ops::Deref, sync::Arc};
 
 #[derive(Clone)]
 pub struct ApiClient {

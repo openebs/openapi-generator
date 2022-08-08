@@ -3,7 +3,7 @@
 #![allow(clippy::type_complexity)]
 use super::body::BodyStreamExt;
 
-pub use hyper::{body, service::Service, Body, Request, Response};
+pub use hyper::{body, service::Service, Body, Request, Response, Uri};
 
 use std::sync::Arc;
 use tokio::sync::Mutex;
