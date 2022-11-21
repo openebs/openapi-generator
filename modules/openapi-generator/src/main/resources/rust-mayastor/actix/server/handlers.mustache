@@ -1,8 +1,11 @@
 #![allow(missing_docs, trivial_casts, unused_variables, unused_mut, unused_imports, unused_extern_crates, non_camel_case_types)]
 
-use crate::apis::{
-    actix_server::{Body, NoContent, RestError},
-    {{{classFilename}}}::actix::server,
+use crate::{
+    actix::server::{deserialize_option_stringified_list, deserialize_stringified_list},
+    apis::{
+        actix_server::{Body, NoContent, RestError},
+        {{{classFilename}}}::actix::server,
+    },
 };
 use actix_web::{
     web::{Json, Path, Query, ServiceConfig},
@@ -32,7 +35,7 @@ pub fn configure<T: server::{{{classname}}} + 'static{{#operations}}{{#operation
 struct {{{operationId}}}QueryParams {
 {{#queryParams}}
     {{#description}}/// {{{description}}}{{/description}}
-    #[serde(rename = "{{{baseName}}}"{{^required}}, skip_serializing_if = "Option::is_none"{{/required}})]
+    #[serde(rename = "{{{baseName}}}"{{^required}}, skip_serializing_if = "Option::is_none"{{#isContainer}}{{#items}}{{#isString}}, deserialize_with = "deserialize_option_stringified_list"{{/isString}}{{/items}}{{/isContainer}}{{/required}}{{#required}}{{#isContainer}}{{#items}}{{#isString}}, deserialize_with = "deserialize_stringified_list"{{/isString}}{{/items}}{{/isContainer}}{{/required}})]
     pub {{{paramName}}}: {{^required}}Option<{{/required}}{{#required}}{{#isNullable}}Option<{{/isNullable}}{{/required}}{{#isString}}{{{dataType}}}{{/isString}}{{#isUuid}}uuid::Uuid{{/isUuid}}{{^isString}}{{^isUuid}}{{^isPrimitiveType}}{{^isContainer}}crate::models::{{/isContainer}}{{/isPrimitiveType}}{{{dataType}}}{{/isUuid}}{{/isString}}{{^required}}>{{/required}}{{#required}}{{#isNullable}}>{{/isNullable}}{{/required}},
 {{/queryParams}}
 }

@@ -104,15 +104,15 @@ impl {{{classname}}} for {{{classname}}}Client {
         {{#queryParams}}
         {{#required}}
         let query_params = match query_params {
-            None => Some(format!("{{{baseName}}}={}", {{{paramName}}}{{#isArray}}.into_iter().map(|p| p.to_string()).collect::<Vec<String>>().join(","){{/isArray}}.to_string())),
-            Some(previous) => Some(format!("{}&{{{baseName}}}={}", previous, {{{paramName}}}{{#isArray}}.into_iter().map(|p| p.to_string()).collect::<Vec<String>>().join(","){{/isArray}}.to_string()))
+            None => Some(format!("{{{baseName}}}={}", {{{paramName}}}{{#isArray}}{{#items}}{{^isString}}.into_iter().map(|p| p.to_string()).collect::<Vec<String>>(){{/isString}}.join(","){{/items}}{{/isArray}}{{^isArray}}.to_string(){{/isArray}})),
+            Some(previous) => Some(format!("{}&{{{baseName}}}={}", previous, {{{paramName}}}{{#isArray}}{{#items}}{{^isString}}.into_iter().map(|p| p.to_string()).collect::<Vec<String>>(){{/isString}}.join(","){{/items}}{{/isArray}}{{^isArray}}.to_string(){{/isArray}}))
         };
         {{/required}}
         {{^required}}
-        let query_params = if let Some(ref local_var_str) = {{{paramName}}} {
+        let query_params = if let Some(local_var_str) = {{{paramName}}} {
             match query_params {
-                None => Some(format!("{{{baseName}}}={}", local_var_str{{#isArray}}.into_iter().map(|p| p.to_string()).collect::<Vec<String>>().join(","){{/isArray}}.to_string())),
-                Some(previous) => Some(format!("{}&{{{baseName}}}={}", previous, local_var_str{{#isArray}}.into_iter().map(|p| p.to_string()).collect::<Vec<String>>().join(","){{/isArray}}.to_string()))
+                None => Some(format!("{{{baseName}}}={}", local_var_str{{#isArray}}{{#items}}{{^isString}}.into_iter().map(|p| p.to_string()).collect::<Vec<String>>(){{/isString}}.join(","){{/items}}{{/isArray}}{{^isArray}}.to_string(){{/isArray}})),
+                Some(previous) => Some(format!("{}&{{{baseName}}}={}", previous, local_var_str{{#isArray}}{{#items}}{{^isString}}.into_iter().map(|p| p.to_string()).collect::<Vec<String>>(){{/isString}}.join(","){{/items}}{{/isArray}}{{^isArray}}.to_string(){{/isArray}}))
             }
         } else {
             query_params
@@ -158,18 +158,18 @@ impl {{{classname}}} for {{{classname}}}Client {
         {{#headerParams}}
         {{#required}}
         {{^isNullable}}
-        local_var_req_builder = local_var_req_builder.header("{{{baseName}}}", {{{paramName}}}{{#isArray}}.join(","){{/isArray}}.to_string());
+        local_var_req_builder = local_var_req_builder.header("{{{baseName}}}", {{{paramName}}}{{#isArray}}.join(","){{/isArray}}{{^isArray}}.to_string(){{/isArray}});
         {{/isNullable}}
         {{#isNullable}}
         match {{{paramName}}} {
-            Some(local_var_param_value) => { local_var_req_builder = local_var_req_builder.insert_header(("{{{baseName}}}", local_var_param_value{{#isArray}}.join(","){{/isArray}}.to_string())); },
+            Some(local_var_param_value) => { local_var_req_builder = local_var_req_builder.insert_header(("{{{baseName}}}", local_var_param_value{{#isArray}}.join(","){{/isArray}}{{^isArray}}.to_string(){{/isArray}})); },
             None => { local_var_req_builder = local_var_req_builder.insert_header(("{{{baseName}}}", "")); },
         }
         {{/isNullable}}
         {{/required}}
         {{^required}}
         if let Some(local_var_param_value) = {{{paramName}}} {
-            local_var_req_builder = local_var_req_builder.header("{{{baseName}}}", local_var_param_value{{#isArray}}.join(","){{/isArray}}.to_string());
+            local_var_req_builder = local_var_req_builder.header("{{{baseName}}}", local_var_param_value{{#isArray}}.join(","){{/isArray}}{{^isArray}}.to_string(){{/isArray}});
         }
         {{/required}}
         {{/headerParams}}

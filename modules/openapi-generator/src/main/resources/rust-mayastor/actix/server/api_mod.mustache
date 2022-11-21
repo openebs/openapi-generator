@@ -194,3 +194,54 @@ pub fn configure<T: {{#apiInfo}}{{#apis}}{{#operations}}{{^-last}}{{{classname}}
 {{/apis}}
 {{/apiInfo}}
 }
+
+/// Used with Query to deserialize into Vec<I>.
+pub(crate) fn deserialize_stringified_list<'de, D, I>(
+    deserializer: D,
+) -> std::result::Result<Vec<I>, D::Error>
+where
+    D: serde::de::Deserializer<'de>,
+    I: serde::de::DeserializeOwned,
+{
+    struct StringVecVisitor<I>(std::marker::PhantomData<I>);
+
+    impl<'de, I> serde::de::Visitor<'de> for StringVecVisitor<I>
+    where
+        I: serde::de::DeserializeOwned,
+    {
+        type Value = Vec<I>;
+
+        fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
+            formatter.write_str("a string containing a list")
+        }
+
+        fn visit_str<E>(self, v: &str) -> std::result::Result<Self::Value, E>
+        where
+            E: serde::de::Error,
+        {
+            let mut list = Vec::new();
+            for item in v.split(',') {
+                let item = I::deserialize(serde::de::IntoDeserializer::into_deserializer(item))?;
+                list.push(item);
+            }
+            Ok(list)
+        }
+    }
+
+    deserializer.deserialize_any(StringVecVisitor(std::marker::PhantomData::<I>))
+}
+
+/// Used with Query to deserialize into Option<Vec<I>>.
+pub(crate) fn deserialize_option_stringified_list<'de, D, I>(
+    deserializer: D,
+) -> std::result::Result<Option<Vec<I>>, D::Error>
+where
+    D: serde::de::Deserializer<'de>,
+    I: serde::de::DeserializeOwned,
+{
+    let list = deserialize_stringified_list(deserializer)?;
+    match list.is_empty() {
+        true => Ok(None),
+        false => Ok(Some(list)),
+    }
+}
