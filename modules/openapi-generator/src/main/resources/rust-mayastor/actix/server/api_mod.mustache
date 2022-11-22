@@ -196,6 +196,7 @@ pub fn configure<T: {{#apiInfo}}{{#apis}}{{#operations}}{{^-last}}{{{classname}}
 }
 
 /// Used with Query to deserialize into Vec<I>.
+#[allow(dead_code)]
 pub(crate) fn deserialize_stringified_list<'de, D, I>(
     deserializer: D,
 ) -> std::result::Result<Vec<I>, D::Error>
@@ -232,6 +233,7 @@ where
 }
 
 /// Used with Query to deserialize into Option<Vec<I>>.
+#[allow(dead_code)]
 pub(crate) fn deserialize_option_stringified_list<'de, D, I>(
     deserializer: D,
 ) -> std::result::Result<Option<Vec<I>>, D::Error>
