@@ -221,9 +221,11 @@ where
             E: serde::de::Error,
         {
             let mut list = Vec::new();
-            for item in v.split(',') {
-                let item = I::deserialize(serde::de::IntoDeserializer::into_deserializer(item))?;
-                list.push(item);
+            if !v.is_empty() {
+                for item in v.split(',') {
+                    let item = I::deserialize(serde::de::IntoDeserializer::into_deserializer(item))?;
+                    list.push(item);
+                }
             }
             Ok(list)
         }

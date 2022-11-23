@@ -35,7 +35,7 @@ pub fn configure<T: server::{{{classname}}} + 'static{{#operations}}{{#operation
 struct {{{operationId}}}QueryParams {
 {{#queryParams}}
     {{#description}}/// {{{description}}}{{/description}}
-    #[serde(rename = "{{{baseName}}}"{{^required}}, skip_serializing_if = "Option::is_none"{{#isContainer}}{{#items}}{{#isString}}, deserialize_with = "deserialize_option_stringified_list"{{/isString}}{{/items}}{{/isContainer}}{{/required}}{{#required}}{{#isContainer}}{{#items}}{{#isString}}, deserialize_with = "deserialize_stringified_list"{{/isString}}{{/items}}{{/isContainer}}{{/required}})]
+    #[serde(rename = "{{{baseName}}}"{{^required}}, default, skip_serializing_if = "Option::is_none"{{#isContainer}}{{#items}}{{#isString}}, deserialize_with = "deserialize_option_stringified_list"{{/isString}}{{/items}}{{/isContainer}}{{/required}}{{#required}}{{#isContainer}}{{#items}}{{#isString}}, deserialize_with = "deserialize_stringified_list"{{/isString}}{{/items}}{{/isContainer}}{{/required}})]
     pub {{{paramName}}}: {{^required}}Option<{{/required}}{{#required}}{{#isNullable}}Option<{{/isNullable}}{{/required}}{{#isString}}{{{dataType}}}{{/isString}}{{#isUuid}}uuid::Uuid{{/isUuid}}{{^isString}}{{^isUuid}}{{^isPrimitiveType}}{{^isContainer}}crate::models::{{/isContainer}}{{/isPrimitiveType}}{{{dataType}}}{{/isUuid}}{{/isString}}{{^required}}>{{/required}}{{#required}}{{#isNullable}}>{{/isNullable}}{{/required}},
 {{/queryParams}}
 }
