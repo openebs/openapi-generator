@@ -48,11 +48,13 @@ public class RustMayastorCodegen extends DefaultCodegen implements CodegenConfig
     private String actixWebVersion = "4.1.0";
     private String actixWebFeatures = "\"rustls\"";
     private String actixWebTelemetryVersion = "\"0.12.0\"";
+    private boolean actixWebBeta = false;
 
     public static final String PACKAGE_NAME = "packageName";
     public static final String PACKAGE_VERSION = "packageVersion";
     public static final String SUPPORT_MULTIPLE_RESPONSES = "supportMultipleResponses";
     public static final String ACTIX_WEB_VERSION = "actixWebVersion";
+    public static final String ACTIX_WEB4_BETA = "actixWeb4Beta";
     public static final String ACTIX_WEB_FEATURES = "actixWebFeatures";
     public static final String ACTIX_WEB_TELEMETRY_VERSION = "actixWebTelemetryVersion";
     private static final String NO_FORMAT = "%%NO_FORMAT";
@@ -189,6 +191,8 @@ public class RustMayastorCodegen extends DefaultCodegen implements CodegenConfig
                 .defaultValue(getActixWebFeatures()));
         cliOptions.add(new CliOption(ACTIX_WEB_TELEMETRY_VERSION, "Actix Web OpenTelemetry version used by Cargo.toml")
                 .defaultValue(getActixWebFeatures()));
+        cliOptions.add(new CliOption(ACTIX_WEB4_BETA, "Actix Web 4 Beta trait", SchemaTypeUtil.BOOLEAN_TYPE)
+                .defaultValue(Boolean.FALSE.toString()));
 
         cliOptions.add(new CliOption(SUPPORT_MULTIPLE_RESPONSES, "If set, return type wraps an enum of all possible 2xx schemas. This option is for 'reqwest' library only", SchemaTypeUtil.BOOLEAN_TYPE)
             .defaultValue(Boolean.FALSE.toString()));
@@ -284,6 +288,11 @@ public class RustMayastorCodegen extends DefaultCodegen implements CodegenConfig
             additionalProperties.put(ACTIX_WEB_TELEMETRY_VERSION, getActixWebTelemetryVersion());
         }
 
+        if (additionalProperties.containsKey(ACTIX_WEB4_BETA)) {
+            this.setActixWebBeta(convertPropertyToBoolean(ACTIX_WEB4_BETA));
+        }
+        writePropertyBack(ACTIX_WEB4_BETA, getActixWebBeta());
+
         if (additionalProperties.containsKey(CodegenConstants.USE_SINGLE_REQUEST_PARAMETER)) {
             this.setUseSingleRequestParameter(convertPropertyToBoolean(CodegenConstants.USE_SINGLE_REQUEST_PARAMETER));
         }
@@ -358,6 +367,14 @@ public class RustMayastorCodegen extends DefaultCodegen implements CodegenConfig
 
     public void setActixWebTelemetryVersion(String actixWebTelemetryVersion) {
         this.actixWebTelemetryVersion = actixWebTelemetryVersion;
+    }
+
+    public boolean getActixWebBeta() {
+        return actixWebBeta;
+    }
+
+    public void setActixWebBeta(boolean actixWebBeta) {
+        this.actixWebBeta = actixWebBeta;
     }
 
     public boolean getSupportMultipleReturns() {

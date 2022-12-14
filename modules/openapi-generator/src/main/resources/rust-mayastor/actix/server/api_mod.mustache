@@ -74,7 +74,7 @@ impl From<()> for NoContent {
     }
 }
 impl actix_web::Responder for NoContent {
-    type Body = actix_web::body::BoxBody;
+    {{^actixWeb4Beta}}type Body = actix_web::body::BoxBody;{{/actixWeb4Beta}}
 
     fn respond_to(self, _: &actix_web::HttpRequest) -> actix_web::HttpResponse {
         actix_web::HttpResponse::NoContent().finish()

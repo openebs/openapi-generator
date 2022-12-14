@@ -25,11 +25,12 @@ fn init_tracing() {
 async fn main() {
     init_tracing();
     let config = Configuration::new(
-        "http://localhost:8081/v0".parse().unwrap(),
+        "http://localhost:8081/".parse().unwrap(),
         Duration::from_secs(5),
         None,
         None,
         true,
+        Some(1),
     )
     .unwrap();
     let client = openapi::clients::tower::ApiClient::new(config);

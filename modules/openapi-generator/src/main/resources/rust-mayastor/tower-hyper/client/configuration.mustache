@@ -7,7 +7,7 @@ pub use hyper::{body, service::Service, Body, Request, Response, Uri};
 
 use std::sync::Arc;
 use tokio::sync::Mutex;
-use tower::{util::BoxService, Layer, ServiceExt};
+use tower::{util::BoxCloneService, Layer, ServiceExt};
 
 #[cfg(feature = "tower-trace")]
 use opentelemetry::{global, trace::SpanKind};
@@ -39,6 +39,7 @@ pub struct ConfigurationBuilder {
     /// OpenTel and Tracing layer.
     #[cfg(feature = "tower-trace")]
     tracing_layer: bool,
+    concurrency_limit: Option<usize>,
 }
 
 impl Default for ConfigurationBuilder {
@@ -48,6 +49,7 @@ impl Default for ConfigurationBuilder {
             bearer_token: None,
             #[cfg(feature = "tower-trace")]
             tracing_layer: true,
+            concurrency_limit: None,
         }
     }
 }
@@ -67,6 +69,11 @@ impl ConfigurationBuilder {
         self.bearer_token = bearer_token;
         self
     }
+    /// Add a request concurrency limit.
+    pub fn with_concurrency_limit(mut self, limit: Option<usize>) -> Self {
+        self.concurrency_limit = limit;
+        self
+    }
     /// Enable/Disable the telemetry and tracing layer.
     #[cfg(feature = "tower-trace")]
     pub fn tracing_layer(mut self, tracing_layer: bool) -> Self {
@@ -76,7 +83,7 @@ impl ConfigurationBuilder {
     /// Build a `Configuration` from the Self parameters.
     pub fn build<S>(self, uri: hyper::Uri, client_service: S) -> Result<Configuration, Error>
     where
-        S: Service<Request<Body>, Response = Response<Body>> + Sync + Send + 'static,
+        S: Service<Request<Body>, Response = Response<Body>> + Sync + Send + Clone + 'static,
         S::Future: Send + 'static,
         S::Error: Into<BoxedError> + std::fmt::Debug,
     {
@@ -90,6 +97,7 @@ impl ConfigurationBuilder {
             self.timeout,
             self.bearer_token,
             tracing_layer,
+            self.concurrency_limit,
         )
     }
 }
@@ -99,7 +107,7 @@ impl ConfigurationBuilder {
 pub struct Configuration {
     pub base_path: hyper::Uri,
     pub user_agent: Option<String>,
-    pub client_service: Arc<Mutex<BoxService<Request<Body>, Response<Body>, BoxedError>>>,
+    pub client_service: Arc<Mutex<BoxCloneService<Request<Body>, Response<Body>, BoxedError>>>,
     pub basic_auth: Option<BasicAuth>,
     pub oauth_access_token: Option<String>,
     pub bearer_access_token: Option<String>,
@@ -138,9 +146,10 @@ impl Configuration {
         timeout: Option<std::time::Duration>,
         bearer_access_token: Option<String>,
         trace_requests: bool,
+        concurrency_limit: Option<usize>,
     ) -> Result<Self, Error>
     where
-        S: Service<Request<Body>, Response = Response<Body>> + Sync + Send + 'static,
+        S: Service<Request<Body>, Response = Response<Body>> + Sync + Send + Clone + 'static,
         S::Future: Send + 'static,
         S::Error: Into<BoxedError> + std::fmt::Debug,
     {
@@ -205,17 +214,20 @@ impl Configuration {
             // )
             .service(client_service);
 
+        let service_builder = tower::ServiceBuilder::new()
+            .option_layer(concurrency_limit.map(tower::limit::ConcurrencyLimitLayer::new));
+
         match trace_requests {
             false => Ok(Self::new_with_client_inner(
                 url,
-                tower::ServiceBuilder::new().service(backend_service),
+                service_builder.service(backend_service),
                 bearer_access_token,
             )),
             true => {
                 #[cfg(feature = "tower-trace")]
                 let result = Ok(Self::new_with_client_inner(
                     url,
-                    tower::ServiceBuilder::new()
+                    service_builder
                         .layer(tracing_layer)
                         .service(backend_service),
                     bearer_access_token,
@@ -234,6 +246,7 @@ impl Configuration {
         bearer_access_token: Option<String>,
         certificate: Option<&[u8]>,
         trace_requests: bool,
+        concurrency_limit: Option<usize>,
     ) -> Result<Self, Error> {
         #[cfg(all(not(feature = "tower-client-tls"), feature = "tower-client-rls"))]
         let client = {
@@ -318,6 +331,7 @@ impl Configuration {
             Some(timeout),
             bearer_access_token,
             trace_requests,
+            concurrency_limit,
         )
     }
 
@@ -328,7 +342,7 @@ impl Configuration {
         bearer_access_token: Option<String>,
     ) -> Self
     where
-        S: Service<Request<Body>, Response = Response<B>> + Sync + Send + 'static,
+        S: Service<Request<Body>, Response = Response<B>> + Sync + Send + Clone + 'static,
         S::Future: Send + 'static,
         S::Error: Into<BoxedError> + std::fmt::Debug,
         B: http_body::Body<Data = hyper::body::Bytes> + Send + 'static,
@@ -339,7 +353,7 @@ impl Configuration {
         let client_service = MapResponseBodyLayer::new(|b: B| Body::wrap_stream(b.into_stream()))
             .layer(client_service)
             .map_err(|e| e.into());
-        let client_service = Arc::new(Mutex::new(BoxService::new(client_service)));
+        let client_service = Arc::new(Mutex::new(BoxCloneService::new(client_service)));
         Self {
             base_path: url,
             user_agent: None,
