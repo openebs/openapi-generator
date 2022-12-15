@@ -5,7 +5,7 @@ use super::body::BodyStreamExt;
 
 pub use hyper::{body, service::Service, Body, Request, Response, Uri};
 
-use std::sync::Arc;
+use std::{sync::Arc, time::Duration};
 use tokio::sync::Mutex;
 use tower::{util::BoxCloneService, Layer, ServiceExt};
 
@@ -39,6 +39,7 @@ pub struct ConfigurationBuilder {
     /// OpenTel and Tracing layer.
     #[cfg(feature = "tower-trace")]
     tracing_layer: bool,
+    certificate: Option<Vec<u8>>,
     concurrency_limit: Option<usize>,
 }
 
@@ -49,6 +50,7 @@ impl Default for ConfigurationBuilder {
             bearer_token: None,
             #[cfg(feature = "tower-trace")]
             tracing_layer: true,
+            certificate: None,
             concurrency_limit: None,
         }
     }
@@ -60,8 +62,8 @@ impl ConfigurationBuilder {
         Self::default()
     }
     /// Enable/Disable a request timeout layer with the given request timeout.
-    pub fn with_timeout(mut self, timeout: Option<std::time::Duration>) -> Self {
-        self.timeout = timeout;
+    pub fn with_timeout<O: Into<Option<Duration>>>(mut self, timeout: O) -> Self {
+        self.timeout = timeout.into();
         self
     }
     /// Enable/Disable the given request bearer token.
@@ -74,14 +76,45 @@ impl ConfigurationBuilder {
         self.concurrency_limit = limit;
         self
     }
+    /// Add a PEM-format certificate file.
+    pub fn with_certificate(mut self, certificate: &[u8]) -> Self {
+        self.certificate = Some(certificate.to_vec());
+        self
+    }
     /// Enable/Disable the telemetry and tracing layer.
     #[cfg(feature = "tower-trace")]
-    pub fn tracing_layer(mut self, tracing_layer: bool) -> Self {
+    pub fn with_tracing(mut self, tracing_layer: bool) -> Self {
         self.tracing_layer = tracing_layer;
         self
     }
     /// Build a `Configuration` from the Self parameters.
-    pub fn build<S>(self, uri: hyper::Uri, client_service: S) -> Result<Configuration, Error>
+    pub fn build<S>(self, uri: hyper::Uri) -> Result<Configuration, Error> {
+        Configuration::new(
+            uri.to_string().parse().map_err(Error::UriToUrl)?,
+            self.timeout.unwrap(),
+            self.bearer_token,
+            self.certificate.as_ref().map(|c| &c[..]),
+            self.tracing_layer,
+            self.concurrency_limit,
+        )
+    }
+    /// Build a `Configuration` from the Self parameters.
+    pub fn build_url(self, url: url::Url) -> Result<Configuration, Error> {
+        Configuration::new(
+            url,
+            self.timeout.unwrap_or_else(|| Duration::from_secs(5)),
+            self.bearer_token,
+            self.certificate.as_ref().map(|c| &c[..]),
+            self.tracing_layer,
+            self.concurrency_limit,
+        )
+    }
+    /// Build a `Configuration` from the Self parameters.
+    pub fn build_with_svc<S>(
+        self,
+        uri: hyper::Uri,
+        client_service: S,
+    ) -> Result<Configuration, Error>
     where
         S: Service<Request<Body>, Response = Response<Body>> + Sync + Send + Clone + 'static,
         S::Future: Send + 'static,
@@ -130,6 +163,7 @@ pub enum Error {
     Certificate,
     NoTracingFeature,
     UrlToUri(hyper::http::uri::InvalidUri),
+    UriToUrl(url::ParseError),
     AddingVersionPath(hyper::http::uri::InvalidUri),
 }
 
