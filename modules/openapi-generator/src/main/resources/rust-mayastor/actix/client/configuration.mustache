@@ -51,11 +51,11 @@ impl Configuration {
                     .connector(connector)
                     .finish();
 
-                (client, format!("https://{}", uri))
+                (client, format!("https://{uri}"))
             }
             None => {
                 let client = awc::Client::builder().timeout(timeout).finish();
-                (client, format!("http://{}", uri))
+                (client, format!("http://{uri}"))
             }
         };
 

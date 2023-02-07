@@ -37,10 +37,10 @@ async fn main() {
 
     match client.nodes_api().get_nodes().await {
         Ok(resp) => {
-            println!("resp: {:#?}", resp);
+            println!("resp: {resp:#?}");
         }
         Err(resp) => {
-            println!("resp: {:#?}", resp);
+            println!("resp: {resp:#?}");
         }
     }
 }

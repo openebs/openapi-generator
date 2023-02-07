@@ -85,7 +85,7 @@ impl<T: fmt::Debug> fmt::Display for Error<T> {
                 format!("status code '{}', text '{}'", e.status, e.text),
             ),
         };
-        write!(f, "error in {}: {}", module, e)
+        write!(f, "error in {module}: {e}")
     }
 }
 

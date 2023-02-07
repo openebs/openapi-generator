@@ -189,7 +189,7 @@ impl fmt::Display for RequestError {
             RequestError::Serde(e) => ("serde", e.to_string()),
             RequestError::SerdeEncoded(e) => ("serde_encoding", e.to_string()),
         };
-        write!(f, "error in {}: {}", module, e)
+        write!(f, "error in {module}: {e}")
     }
 }
 impl error::Error for RequestError {
@@ -226,14 +226,14 @@ impl<T: fmt::Debug> fmt::Display for ResponseError<T> {
             ),
             ResponseError::PayloadError { status, error } => (
                 "response",
-                format!("status code '{}', error: '{:?}'", status, error),
+                format!("status code '{status}', error: '{error:?}'"),
             ),
             ResponseError::Unexpected(e) => (
                 "response",
                 format!("status code '{}', text '{}'", e.status, e.text),
             ),
         };
-        write!(f, "error in {}: {}", module, e)
+        write!(f, "error in {module}: {e}")
     }
 }
 impl<T: fmt::Debug> error::Error for ResponseError<T> {

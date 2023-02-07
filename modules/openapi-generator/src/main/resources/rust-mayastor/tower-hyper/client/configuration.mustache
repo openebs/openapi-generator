@@ -209,9 +209,9 @@ impl Configuration {
                     .on_response(
                         |response: &Response<Body>, _latency: std::time::Duration, span: &Span| {
                             let status = response.status();
-                            span.record("http.status_code", &status.as_u16());
+                            span.record("http.status_code", status.as_u16());
                             if status.is_client_error() || status.is_server_error() {
-                                span.record("otel.status_code", &"ERROR");
+                                span.record("otel.status_code", "ERROR");
                             }
                         },
                     )
@@ -220,10 +220,10 @@ impl Configuration {
                         |ec: ServerErrorsFailureClass,
                          _latency: std::time::Duration,
                          span: &Span| {
-                            span.record("otel.status_code", &"ERROR");
+                            span.record("otel.status_code", "ERROR");
                             match ec {
                                 ServerErrorsFailureClass::StatusCode(status) => {
-                                    span.record("http.status_code", &status.as_u16());
+                                    span.record("http.status_code", status.as_u16());
                                     tracing::error!(status=%status, "failed to issue request")
                                 }
                                 ServerErrorsFailureClass::Error(err) => {

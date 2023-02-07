@@ -78,7 +78,7 @@ impl {{{classname}}} for {{{classname}}}Client {
         if let Some(ref local_var_apikey) = configuration.api_key {
             let local_var_key = local_var_apikey.key.clone();
             let local_var_value = match local_var_apikey.prefix {
-                Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+                Some(ref local_var_prefix) => format!("{local_var_prefix} {local_var_key}"),
                 None => local_var_key,
             };
             {{^hasQueryParams}}let mut query_params = vec![];{{/hasQueryParams}}
@@ -119,29 +119,29 @@ impl {{{classname}}} for {{{classname}}}Client {
         if let Some(ref local_var_apikey) = configuration.api_key {
             let local_var_key = local_var_apikey.key.clone();
             let local_var_value = match local_var_apikey.prefix {
-                Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+                Some(ref local_var_prefix) => format!("{local_var_prefix} {local_var_key}"),
                 None => local_var_key,
             };
             local_var_req_builder = local_var_req_builder.insert_header(("{{{keyParamName}}}", local_var_value));
-        };
+        }
         {{/isKeyInHeader}}
         {{/isApiKey}}
         {{#isBasic}}
         {{#isBasicBasic}}
         if let Some(ref local_var_auth_conf) = configuration.basic_auth {
             local_var_req_builder = local_var_req_builder.basic_auth(local_var_auth_conf.0.to_owned(), local_var_auth_conf.1.to_owned());
-        };
+        }
         {{/isBasicBasic}}
         {{#isBasicBearer}}
         if let Some(ref local_var_token) = configuration.bearer_access_token {
             local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
-        };
+        }
         {{/isBasicBearer}}
         {{/isBasic}}
         {{#isOAuth}}
         if let Some(ref local_var_token) = configuration.oauth_access_token {
             local_var_req_builder = local_var_req_builder.bearer_auth(local_var_token.to_owned());
-        };
+        }
         {{/isOAuth}}
         {{/authMethods}}
         {{/hasAuthMethods}}

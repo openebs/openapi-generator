@@ -105,14 +105,14 @@ impl {{{classname}}} for {{{classname}}}Client {
         {{#required}}
         let query_params = match query_params {
             None => Some(format!("{{{baseName}}}={}", {{{paramName}}}{{#isArray}}{{#items}}{{^isString}}.into_iter().map(|p| p.to_string()).collect::<Vec<String>>(){{/isString}}.join(","){{/items}}{{/isArray}}{{^isArray}}.to_string(){{/isArray}})),
-            Some(previous) => Some(format!("{}&{{{baseName}}}={}", previous, {{{paramName}}}{{#isArray}}{{#items}}{{^isString}}.into_iter().map(|p| p.to_string()).collect::<Vec<String>>(){{/isString}}.join(","){{/items}}{{/isArray}}{{^isArray}}.to_string(){{/isArray}}))
+            Some(previous) => Some(format!("{previous}&{{{baseName}}}={}", {{{paramName}}}{{#isArray}}{{#items}}{{^isString}}.into_iter().map(|p| p.to_string()).collect::<Vec<String>>(){{/isString}}.join(","){{/items}}{{/isArray}}{{^isArray}}.to_string(){{/isArray}}))
         };
         {{/required}}
         {{^required}}
         let query_params = if let Some(local_var_str) = {{{paramName}}} {
             match query_params {
                 None => Some(format!("{{{baseName}}}={}", local_var_str{{#isArray}}{{#items}}{{^isString}}.into_iter().map(|p| p.to_string()).collect::<Vec<String>>(){{/isString}}.join(","){{/items}}{{/isArray}}{{^isArray}}.to_string(){{/isArray}})),
-                Some(previous) => Some(format!("{}&{{{baseName}}}={}", previous, local_var_str{{#isArray}}{{#items}}{{^isString}}.into_iter().map(|p| p.to_string()).collect::<Vec<String>>(){{/isString}}.join(","){{/items}}{{/isArray}}{{^isArray}}.to_string(){{/isArray}}))
+                Some(previous) => Some(format!("{previous}&{{{baseName}}}={}", local_var_str{{#isArray}}{{#items}}{{^isString}}.into_iter().map(|p| p.to_string()).collect::<Vec<String>>(){{/isString}}.join(","){{/items}}{{/isArray}}{{^isArray}}.to_string(){{/isArray}}))
             }
         } else {
             query_params
@@ -121,7 +121,7 @@ impl {{{classname}}} for {{{classname}}}Client {
         {{/queryParams}}
         let local_var_uri_str = match query_params {
             None => local_var_uri_str,
-            Some(params) => format!("{}?{}", local_var_uri_str, params)
+            Some(params) => format!("{local_var_uri_str}?{params}")
         };
         {{/hasQueryParams}}
         {{#hasAuthMethods}}
@@ -131,17 +131,17 @@ impl {{{classname}}} for {{{classname}}}Client {
         let local_var_uri_str = if let Some(ref local_var_apikey) = configuration.api_key {
             let local_var_key = local_var_apikey.key.clone();
             let local_var_value = match local_var_apikey.prefix {
-                Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+                Some(ref local_var_prefix) => format!("{local_var_prefix} {local_var_key}"),
                 None => local_var_key,
             };
             {{#hasQueryParams}}
             let local_var_uri_str = match query_params {
-                None => format!("{}?{{{keyParamName}}}", local_var_uri_str, local_var_value),
-                Some(_) => format!("{}&{{{keyParamName}}}", local_var_uri_str, local_var_value),
+                None => format!("{local_var_uri_str}?{{{keyParamName}}}={local_var_value}"),
+                Some(_) => format!("{local_var_uri_str}&{{{keyParamName}}}={local_var_value}"),
             };
             {{/hasQueryParams}}
             {{^hasQueryParams}}
-            let local_var_uri_str = format!("{}?{{{keyParamName}}}", local_var_uri_str, local_var_value);
+            let local_var_uri_str = format!("{local_var_uri_str}?{{{keyParamName}}}={local_var_value}");
             {{/hasQueryParams}}
             local_var_uri_str
         } else {
@@ -181,7 +181,7 @@ impl {{{classname}}} for {{{classname}}}Client {
         if let Some(ref local_var_apikey) = configuration.api_key {
             let local_var_key = local_var_apikey.key.clone();
             let local_var_value = match local_var_apikey.prefix {
-                Some(ref local_var_prefix) => format!("{} {}", local_var_prefix, local_var_key),
+                Some(ref local_var_prefix) => format!("{local_var_prefix} {local_var_key}"),
                 None => local_var_key,
             };
             local_var_req_builder = local_var_req_builder.header("{{{keyParamName}}}", local_var_value);
@@ -191,18 +191,18 @@ impl {{{classname}}} for {{{classname}}}Client {
         {{#isBasic}}
         {{#isBasicBasic}}
         if let Some(ref local_var_auth_conf) = configuration.basic_auth {
-            local_var_req_builder = local_var_req_builder.header(hyper::header::AUTHORIZATION, format!("Basic {}", local_var_auth_conf));
+            local_var_req_builder = local_var_req_builder.header(hyper::header::AUTHORIZATION, format!("Basic {local_var_auth_conf}"));
         };
         {{/isBasicBasic}}
         {{#isBasicBearer}}
         if let Some(ref local_var_token) = configuration.bearer_access_token {
-            local_var_req_builder = local_var_req_builder.header(hyper::header::AUTHORIZATION, format!("Bearer {}", local_var_token));
+            local_var_req_builder = local_var_req_builder.header(hyper::header::AUTHORIZATION, format!("Bearer {local_var_token}"));
         };
         {{/isBasicBearer}}
         {{/isBasic}}
         {{#isOAuth}}
         if let Some(ref local_var_token) = configuration.oauth_access_token {
-            local_var_req_builder = local_var_req_builder.header(hyper::header::AUTHORIZATION, format!("Bearer {}", local_var_token));
+            local_var_req_builder = local_var_req_builder.header(hyper::header::AUTHORIZATION, format!("Bearer {local_var_token}"));
         };
         {{/isOAuth}}
         {{/authMethods}}
