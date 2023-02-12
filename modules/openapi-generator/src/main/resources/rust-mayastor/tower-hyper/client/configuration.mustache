@@ -15,7 +15,10 @@ use opentelemetry::global;
 use opentelemetry_http::HeaderInjector;
 
 #[cfg(all(feature = "tower-client-rls", not(feature = "tower-client-tls")))]
-use rustls::{Certificate, RootCertStore, ServerCertVerified, ServerCertVerifier, TLSError};
+use rustls::{
+    client::{ServerCertVerified, ServerCertVerifier},
+    Certificate, Error as TLSError,
+};
 
 use tower_http::map_response_body::MapResponseBodyLayer;
 #[cfg(feature = "tower-trace")]
@@ -161,6 +164,7 @@ pub struct ApiKey {
 #[derive(Debug)]
 pub enum Error {
     Certificate,
+    TlsConnector,
     NoTracingFeature,
     UrlToUri(hyper::http::uri::InvalidUri),
     UriToUrl(url::ParseError),
@@ -288,27 +292,36 @@ impl Configuration {
                 None => {
                     let mut http = hyper::client::HttpConnector::new();
 
-                    let mut tls = rustls::ClientConfig::new();
-                    if url.scheme() == "https" {
-                        http.enforce_http(false);
-                        tls.dangerous()
-                            .set_certificate_verifier(std::sync::Arc::new(
-                                DisableServerCertVerifier {},
-                            ));
-                    }
+                    let tls = match url.scheme() == "https" {
+                        true => {
+                            http.enforce_http(false);
+                            rustls::ClientConfig::builder()
+                                .with_safe_defaults()
+                                .with_custom_certificate_verifier(std::sync::Arc::new(
+                                    DisableServerCertVerifier {},
+                                ))
+                                .with_no_client_auth()
+                        }
+                        false => rustls::ClientConfig::builder()
+                            .with_safe_defaults()
+                            .with_root_certificates(rustls::RootCertStore::empty())
+                            .with_no_client_auth(),
+                    };
 
                     let connector =
                         hyper_rustls::HttpsConnector::from((http, std::sync::Arc::new(tls)));
                     hyper::Client::builder().build(connector)
                 }
                 Some(bytes) => {
-                    let cert_file = &mut std::io::BufReader::new(bytes);
-
-                    let mut config = rustls::ClientConfig::new();
-                    config
-                        .root_store
-                        .add_pem_file(cert_file)
-                        .map_err(|_| Error::Certificate)?;
+                    let mut cert_file = std::io::BufReader::new(bytes);
+                    let mut root_store = rustls::RootCertStore::empty();
+                    root_store.add_parsable_certificates(
+                        &rustls_pemfile::certs(&mut cert_file).map_err(|_| Error::Certificate)?,
+                    );
+                    let config = rustls::ClientConfig::builder()
+                        .with_safe_defaults()
+                        .with_root_certificates(root_store)
+                        .with_no_client_auth();
 
                     let mut http = hyper::client::HttpConnector::new();
                     http.enforce_http(false);
@@ -331,22 +344,22 @@ impl Configuration {
                     let tls = hyper_tls::native_tls::TlsConnector::builder()
                         .danger_accept_invalid_certs(true)
                         .build()
-                        .unwrap();
+                        .map_err(|_| Error::TlsConnector)?;
                     let tls = tokio_native_tls::TlsConnector::from(tls);
 
                     let connector = hyper_tls::HttpsConnector::from((http, tls));
                     hyper::Client::builder().build(connector)
                 }
                 Some(bytes) => {
-                    let certificate = hyper_tls::native_tls::Certificate::from_pem(bytes).unwrap();
+                    let certificate = hyper_tls::native_tls::Certificate::from_pem(bytes)
+                        .map_err(|_| Error::Certificate)?;
 
                     let tls = hyper_tls::native_tls::TlsConnector::builder()
                         .add_root_certificate(certificate)
                         .danger_accept_invalid_hostnames(true)
                         .disable_built_in_roots(true)
-                        // .disable_built_in_roots()
                         .build()
-                        .unwrap();
+                        .map_err(|_| Error::TlsConnector)?;
                     let tls = tokio_native_tls::TlsConnector::from(tls);
 
                     let mut http = hyper_tls::HttpsConnector::new();
@@ -462,10 +475,12 @@ struct DisableServerCertVerifier {}
 impl ServerCertVerifier for DisableServerCertVerifier {
     fn verify_server_cert(
         &self,
-        _roots: &RootCertStore,
-        _presented_certs: &[Certificate],
-        _dns_name: webpki::DNSNameRef,
+        _end_entity: &Certificate,
+        _intermediates: &[Certificate],
+        _server_name: &rustls::ServerName,
+        _scts: &mut dyn Iterator<Item = &[u8]>,
         _ocsp_response: &[u8],
+        _now: std::time::SystemTime,
     ) -> Result<ServerCertVerified, TLSError> {
         Ok(ServerCertVerified::assertion())
     }
