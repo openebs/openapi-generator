@@ -10,7 +10,7 @@ use tokio::sync::Mutex;
 use tower::{util::BoxCloneService, Layer, ServiceExt};
 
 #[cfg(feature = "tower-trace")]
-use opentelemetry::{global, trace::SpanKind};
+use opentelemetry::global;
 #[cfg(feature = "tower-trace")]
 use opentelemetry_http::HeaderInjector;
 
@@ -198,7 +198,7 @@ impl Configuration {
                             http.url = %request.uri(),
                             http.status_code = tracing::field::Empty,
                             otel.name = %format!("{} {}", request.method(), request.uri()),
-                            otel.kind = %SpanKind::Client,
+                            otel.kind = "client",
                             otel.status_code = tracing::field::Empty,
                         )
                     })
