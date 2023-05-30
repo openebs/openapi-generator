@@ -95,45 +95,52 @@ impl ApiClient {
 {{/apiInfo}}
 }
 
-/// Http Response with status and body
+/// Http Response with status and body.
 #[derive(Debug, Clone)]
 pub struct ResponseContent<T> {
     pub(crate) status: hyper::StatusCode,
     pub(crate) body: T,
 }
 impl<T> ResponseContent<T> {
-    /// Get the status code
+    /// Get the status code.
     pub fn status(&self) -> hyper::StatusCode {
         self.status
     }
-    /// Get a reference to the body
+    /// Get a reference to the body.
     pub fn body(&self) -> &T {
         &self.body
     }
-    /// Convert self into the body
+    /// Convert self into the body.
     pub fn into_body(self) -> T {
         self.body
     }
+    /// Convert ResponseContent<T> into ResponseContent<Vec<T>>.
+    pub fn with_vec_body(self) -> ResponseContent<Vec<T>> {
+        ResponseContent {
+            status: self.status,
+            body: vec![self.body]
+        }
+    }
 }
 
-/// Http Response with status and body as text (could not be coerced into the expected type)
+/// Http Response with status and body as text (could not be coerced into the expected type).
 #[derive(Debug, Clone)]
 pub struct ResponseContentUnexpected {
     pub(crate) status: hyper::StatusCode,
     pub(crate) text: String,
 }
 impl ResponseContentUnexpected {
-    /// Get the status code
+    /// Get the status code.
     pub fn status(&self) -> hyper::StatusCode {
         self.status
     }
-    /// Get a reference to the text
+    /// Get a reference to the text.
     pub fn text(&self) -> &str {
         self.text.as_ref()
     }
 }
 
-/// Error type for all Requests with the various variants
+/// Error type for all Requests with the various variants.
 #[derive(Debug)]
 pub enum Error<T> {
     Request(RequestError),
@@ -166,18 +173,18 @@ impl<T: fmt::Debug> error::Error for Error<T> {
     }
 }
 
-/// Failed to issue the request
+/// Failed to issue the request.
 #[derive(Debug)]
 pub enum RequestError {
-    /// Failed to build the http request
+    /// Failed to build the http request.
     BuildRequest(hyper::http::Error),
-    /// Service Request call returned an error
+    /// Service Request call returned an error.
     Request(BoxedError),
-    /// Service was not ready to process the request
+    /// Service was not ready to process the request.
     NotReady(BoxedError),
-    /// Failed to serialize request payload
+    /// Failed to serialize request payload.
     Serde(serde_json::Error),
-    /// Failed to encode the url path
+    /// Failed to encode the url path.
     SerdeEncoded(serde_urlencoded::ser::Error),
 }
 impl fmt::Display for RequestError {
@@ -204,17 +211,17 @@ impl error::Error for RequestError {
     }
 }
 
-/// Error type for all Requests with the various variants
+/// Error type for all Requests with the various variants.
 #[derive(Debug)]
 pub enum ResponseError<T> {
-    /// The OpenAPI call returned the "expected" OpenAPI JSON content
+    /// The OpenAPI call returned the "expected" OpenAPI JSON content.
     Expected(ResponseContent<T>),
-    /// Failed to convert the response payload to bytes
+    /// Failed to convert the response payload to bytes.
     PayloadError {
         status: hyper::StatusCode,
         error: hyper::Error,
     },
-    /// The OpenAPI call returned an "unexpected" JSON content
+    /// The OpenAPI call returned an "unexpected" JSON content.
     Unexpected(ResponseContentUnexpected),
 }
 impl<T: fmt::Debug> fmt::Display for ResponseError<T> {
