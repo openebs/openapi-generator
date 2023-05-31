@@ -33,14 +33,14 @@ async fn main() {
         Some(1),
     )
     .unwrap();
-    let client = openapi::clients::tower::ApiClient::new(config);
+    let _client = openapi::clients::tower::ApiClient::new(config);
 
-    match client.nodes_api().get_nodes().await {
-        Ok(resp) => {
-            println!("resp: {resp:#?}");
-        }
-        Err(resp) => {
-            println!("resp: {resp:#?}");
-        }
-    }
+    // match client.nodes_api().get_nodes().await {
+    //    Ok(resp) => {
+    //        println!("resp: {resp:#?}");
+    //    }
+    //    Err(resp) => {
+    //        println!("resp: {resp:#?}");
+    //    }
+    // }
 }
