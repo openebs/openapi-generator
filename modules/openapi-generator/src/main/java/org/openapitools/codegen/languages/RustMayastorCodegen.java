@@ -686,7 +686,9 @@ public class RustMayastorCodegen extends DefaultCodegen implements CodegenConfig
                 }
             }
 
-            operation.vendorExtensions.put("x-actixPath", path);
+            if (path != operation.path) {
+              operation.vendorExtensions.put("x-actixPath", path);
+            }
 
             // add support for single request parameter using x-group-parameters
             if (!operation.vendorExtensions.containsKey("x-group-parameters") && useSingleRequestParameter) {

@@ -19,7 +19,7 @@ pub fn configure<T: server::{{{classname}}} + 'static{{#operations}}{{#operation
 {{#operations}}
 {{#operation}}
        .service(
-            actix_web::web::resource("{{#vendorExtensions}}{{x-actixPath}}{{/vendorExtensions}}")
+            actix_web::web::resource("{{#vendorExtensions.x-actixPath}}{{{vendorExtensions.x-actixPath}}}{{/vendorExtensions.x-actixPath}}{{^vendorExtensions.x-actixPath}}{{{path}}}{{/vendorExtensions.x-actixPath}}")
                 .name("{{{operationId}}}")
                 .guard(actix_web::guard::{{{httpMethod}}}())
                 .route(actix_web::web::{{#vendorExtensions}}{{x-httpMethodLower}}{{/vendorExtensions}}().to({{{operationId}}}::<T{{#hasAuthMethods}}, A{{/hasAuthMethods}}>))
