@@ -146,6 +146,40 @@ pub enum Error<T> {
     Request(RequestError),
     Response(ResponseError<T>),
 }
+impl<T> Error<T> {
+    /// Get the request error, if that is the case.
+    pub fn request(&self) -> Option<&RequestError> {
+        match self {
+            Error::Request(request) => Some(request),
+            Error::Response(_) => None,
+        }
+    }
+    /// Get the response error, if that is the case.
+    pub fn response(&self) -> Option<&ResponseError<T>> {
+        match self {
+            Error::Request(_) => None,
+            Error::Response(response) => Some(response),
+        }
+    }
+    /// Get the expected error, if received.
+    pub fn expected(&self) -> Option<&ResponseContent<T>> {
+        match self {
+            Error::Request(_) => None,
+            Error::Response(response) => response.expected(),
+        }
+    }
+    /// Get the inner body error, if expected.
+    pub fn error_body(&self) -> Option<&T> {
+        match self {
+            Error::Request(_) => None,
+            Error::Response(response) => response.error_body(),
+        }
+    }
+    /// Get the response status code, if any received.
+    pub fn status(&self) -> Option<StatusCode> {
+        self.response().map(|response| response.status())
+    }
+}
 impl<T> From<RequestError> for Error<T> {
     fn from(src: RequestError) -> Self {
         Self::Request(src)
@@ -253,12 +287,26 @@ impl<T: fmt::Debug> error::Error for ResponseError<T> {
     }
 }
 impl<T> ResponseError<T> {
-    /// Get the inner status
+    /// Get the inner status.
     pub fn status(&self) -> StatusCode {
         match self {
             ResponseError::Expected(expected) => expected.status,
             ResponseError::PayloadError { status, .. } => *status,
             ResponseError::Unexpected(unexpected) => unexpected.status,
+        }
+    }
+    /// Get the expected error, if received.
+    pub fn expected(&self) -> Option<&ResponseContent<T>> {
+        match self {
+            ResponseError::Expected(expected) => Some(expected),
+            _ => None,
+        }
+    }
+    /// Get the inner body error, if expected.
+    pub fn error_body(&self) -> Option<&T> {
+        match self {
+            ResponseError::Expected(expected) => Some(&expected.body),
+            _ => None,
         }
     }
 }
