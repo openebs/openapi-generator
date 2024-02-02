@@ -228,10 +228,10 @@ impl Configuration {
                             match ec {
                                 ServerErrorsFailureClass::StatusCode(status) => {
                                     span.record("http.status_code", status.as_u16());
-                                    tracing::error!(status=%status, "failed to issue request")
+                                    tracing::debug!(status=%status, "failed to issue request")
                                 }
                                 ServerErrorsFailureClass::Error(err) => {
-                                    tracing::error!(error=%err, "failed to issue request")
+                                    tracing::debug!(error=%err, "failed to issue request")
                                 }
                             }
                         },
