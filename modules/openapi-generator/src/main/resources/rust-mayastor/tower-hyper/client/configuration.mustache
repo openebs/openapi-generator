@@ -336,9 +336,9 @@ impl Configuration {
         let client = {
             match certificate {
                 None => {
-                    let mut http = hyper_tls::HttpsConnector::new();
+                    let mut http = hyper::client::HttpConnector::new();
                     if url.scheme() == "https" {
-                        http.https_only(true);
+                        http.enforce_http(false);
                     }
 
                     let tls = hyper_tls::native_tls::TlsConnector::builder()
@@ -362,8 +362,8 @@ impl Configuration {
                         .map_err(|_| Error::TlsConnector)?;
                     let tls = tokio_native_tls::TlsConnector::from(tls);
 
-                    let mut http = hyper_tls::HttpsConnector::new();
-                    http.https_only(true);
+                    let mut http = hyper::client::HttpConnector::new();
+                    http.enforce_http(false);
                     let connector = hyper_tls::HttpsConnector::from((http, tls));
                     url.set_scheme("https").ok();
                     hyper::Client::builder().build(connector)
